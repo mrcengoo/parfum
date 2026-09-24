@@ -1,0 +1,6 @@
+{
+  "name": "Parfüm Borsası & Üretim Simülasyonu",
+  "description": "Gerçekçi ekonomi ve hammadde borsası simülasyonu, esans tedariği, parfüm üretimi ve uluslararası sipariş yönetimi oyunu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
