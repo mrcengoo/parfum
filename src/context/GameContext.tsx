@@ -11,13 +11,16 @@ import {
   ProductInventoryItem,
   FinancialRecord,
   Perfumer,
-  GenderType
+  GenderType,
+  SecretRecipe,
+  SecretRecipeAttempt
 } from '../types';
 import { loadGameState, saveGameState, resetGameState } from '../services/storageService';
 import { createShipment, tickMarketPrices, generateRandomOrder } from '../services/economyEngine';
 import { checkRecipeRequirements, startProduction } from '../services/productionEngine';
 import { fulfillMarketOrder } from '../services/orderEngine';
-import { generateRndPerfume, convertRndToPerfume } from '../services/rndEngine';
+import { generateRndPerfume, convertRndToPerfume, generateRndFromFormula, FormulaInputItem } from '../services/rndEngine';
+import { evaluateSecretAttempt, convertSecretToPerfume } from '../services/secretRecipeEngine';
 import { getPerfumerById } from '../data/perfumers';
 
 export interface ToastMessage {
@@ -35,6 +38,7 @@ interface GameContextType {
   perfumers: Perfumer[];
   orders: MarketOrder[];
   rndArchive: RndResult[];
+  secretRecipes: SecretRecipe[];
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   playerCompany: Company;
@@ -52,9 +56,28 @@ interface GameContextType {
   startProductionJob: (perfumeId: string, batchSize?: number) => void;
   instantCompleteProduction: () => void;
   sellToOrder: (orderId: string, quantity: number) => void;
-  conductRnd: (topNotes: string[], middleNotes: string[], baseNotes: string[], gender: GenderType) => RndResult;
+  conductRnd: (
+    topNotes: string[],
+    middleNotes: string[],
+    baseNotes: string[],
+    gender: GenderType,
+    customAmounts?: Record<string, number>
+  ) => RndResult;
+  saveRndFormula: (
+    formulaName: string,
+    items: FormulaInputItem[],
+    gender: GenderType
+  ) => RndResult;
   registerRndPerfume: (rndResultId: string) => void;
   assignPerfumerToPlayerCompany: (perfumerId: string) => void;
+  buySecretRecipe: (secretId: string) => void;
+  guessSecretRecipe: (
+    secretId: string,
+    topNotes: string[],
+    middleNotes: string[],
+    baseNotes: string[]
+  ) => SecretRecipeAttempt;
+  unlockSecretRecipeDirectly: (secretId: string) => void;
   resetGame: () => void;
 }
 
@@ -585,7 +608,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     topNotes: string[],
     middleNotes: string[],
     baseNotes: string[],
-    gender: GenderType
+    gender: GenderType,
+    customAmounts?: Record<string, number>
   ): RndResult => {
     if (playerCompany.cash < playerPerfumer.designFee) {
       addToast({
@@ -600,6 +624,82 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       topNotes,
       middleNotes,
       baseNotes,
+      gender,
+      rawMaterialsMap,
+      playerCompany,
+      playerPerfumer,
+      customAmounts
+    );
+
+    const now = Date.now();
+    const newCash = Math.round((playerCompany.cash - playerPerfumer.designFee) * 100) / 100;
+
+    const designFeeRecord: FinancialRecord = {
+      id: `fin_rnd_fee_${now}`,
+      timestamp: now,
+      type: 'expense',
+      category: 'rnd_design_fee',
+      amount: playerPerfumer.designFee,
+      description: `AR-GE Tasarım Ücreti: ${playerPerfumer.name} (${result.name} formülü - ${result.resultLevel} İcat)`,
+      relatedEntityId: result.id,
+      cashAfter: newCash
+    };
+
+    setGameState((prev) => {
+      const compIndex = prev.companies.findIndex((c) => c.id === playerCompany.id);
+      const updatedCompanies = [...prev.companies];
+      if (compIndex !== -1) {
+        const comp = updatedCompanies[compIndex];
+        const updatedExpenses = comp.totalExpenses + playerPerfumer.designFee;
+        const updatedNetProfit = comp.totalRevenue - updatedExpenses;
+        const updatedMargin = comp.totalRevenue > 0 ? (updatedNetProfit / comp.totalRevenue) * 100 : 0;
+
+        updatedCompanies[compIndex] = {
+          ...comp,
+          cash: newCash,
+          totalExpenses: updatedExpenses,
+          netProfit: updatedNetProfit,
+          profitMargin: Math.round(updatedMargin * 10) / 10,
+          financialHistory: [designFeeRecord, ...comp.financialHistory]
+        };
+      }
+
+      return {
+        ...prev,
+        companies: updatedCompanies,
+        rndArchive: [result, ...prev.rndArchive]
+      };
+    });
+
+    const isSignature = result.resultLevel === 'Efsanevi';
+
+    addToast({
+      type: isSignature ? 'success' : (result.resultLevel === 'Basit' ? 'warning' : 'info'),
+      title: isSignature ? '🏆 EFSANEVİ PARFÜM İCAT EDİLDİ!' : `🧬 Parfümatör: ${result.resultLevel} Seviye Sonuç!`,
+      message: `"${result.name}" (${playerCompany.name} × ${playerPerfumer.name}) sentezlendi! Kalite: %${result.qualityScore}, Özgünlük: %${result.originalityScore}. Tasarım Ücreti: -${playerPerfumer.designFee.toLocaleString('tr-TR')} ₺.`
+    });
+
+    return result;
+  }, [playerCompany, playerPerfumer, rawMaterialsMap, addToast]);
+
+  // Action: Save R&D Formula (charges perfumer design fee, stores in archive)
+  const saveRndFormula = useCallback((
+    formulaName: string,
+    items: FormulaInputItem[],
+    gender: GenderType
+  ): RndResult => {
+    if (playerCompany.cash < playerPerfumer.designFee) {
+      addToast({
+        type: 'error',
+        title: 'Yetersiz Nakit',
+        message: `${playerPerfumer.name} tasarım ücreti ${playerPerfumer.designFee.toLocaleString('tr-TR')} TL'dir. Mevcut bakiye: ${playerCompany.cash.toLocaleString('tr-TR')} TL.`
+      });
+      throw new Error('Yetersiz nakit bakiye.');
+    }
+
+    const result = generateRndFromFormula(
+      formulaName,
+      items,
       gender,
       rawMaterialsMap,
       playerCompany,
@@ -646,12 +746,11 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     });
 
-    const isSignature = result.resultLevel === 'İMZA';
-
+    const isSignature = result.resultLevel === 'Efsanevi';
     addToast({
-      type: isSignature ? 'success' : (result.resultLevel === 'KÖTÜ' ? 'warning' : 'info'),
-      title: isSignature ? '🏆 İMZA PARFÜM İCAT EDİLDİ!' : `🧬 ParfümATÖR: ${result.resultLevel} Seviye Sonuç!`,
-      message: `"${result.name}" (${playerCompany.name} × ${playerPerfumer.name}) sentezlendi! Kalite: %${result.qualityScore}, Uyum: %${result.harmonyScore}. Tasarım Ücreti: -${playerPerfumer.designFee.toLocaleString('tr-TR')} ₺.`
+      type: isSignature ? 'success' : (result.resultLevel === 'Basit' ? 'warning' : 'info'),
+      title: isSignature ? '🏆 EFSANEVİ PARFÜM FORMÜLÜ KAYDEDİLDİ!' : `⚗️ Formül Kaydedildi (${result.resultLevel} Seviye)`,
+      message: `"${result.name}" (${result.totalDrops} Damla) başarıyla kaydedildi! Kalite: %${result.qualityScore}, Harmoni: %${result.harmonyScore}. Tasarım Ücreti: -${playerPerfumer.designFee.toLocaleString('tr-TR')} ₺.`
     });
 
     return result;
@@ -716,6 +815,212 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, [playerCompany.id, perfumersMap, addToast]);
 
+  // Action: Buy Secret Recipe dossier
+  const buySecretRecipe = useCallback((secretId: string) => {
+    const secret = gameState.secretRecipes.find((s) => s.id === secretId);
+    if (!secret) return;
+
+    if (secret.isPurchased) {
+      addToast({
+        type: 'info',
+        title: 'Zaten Satın Alındı',
+        message: `${secret.codeName} gizli reçetesi zaten açılmış durumda. AR-GE'de çözebilirsiniz.`
+      });
+      return;
+    }
+
+    if (playerCompany.cash < secret.purchasePrice) {
+      addToast({
+        type: 'error',
+        title: 'Yetersiz Bakiye',
+        message: `Gizli reçete bedeli ${secret.purchasePrice.toLocaleString('tr-TR')} ₺'dir. Mevcut nakdiniz: ${playerCompany.cash.toLocaleString('tr-TR')} ₺.`
+      });
+      return;
+    }
+
+    const now = Date.now();
+    const newCash = Math.round((playerCompany.cash - secret.purchasePrice) * 100) / 100;
+
+    const record: FinancialRecord = {
+      id: `fin_secret_${now}`,
+      timestamp: now,
+      type: 'expense',
+      category: 'secret_recipe_purchase',
+      amount: secret.purchasePrice,
+      description: `Gizli Reçete Dosyası Satın Alındı: ${secret.codeName}`,
+      relatedEntityId: secret.id,
+      cashAfter: newCash
+    };
+
+    setGameState((prev) => {
+      const compIndex = prev.companies.findIndex((c) => c.id === playerCompany.id);
+      const updatedCompanies = [...prev.companies];
+      if (compIndex !== -1) {
+        const comp = updatedCompanies[compIndex];
+        const updatedExpenses = comp.totalExpenses + secret.purchasePrice;
+        const updatedNetProfit = comp.totalRevenue - updatedExpenses;
+        const updatedMargin = comp.totalRevenue > 0 ? (updatedNetProfit / comp.totalRevenue) * 100 : 0;
+
+        updatedCompanies[compIndex] = {
+          ...comp,
+          cash: newCash,
+          totalExpenses: updatedExpenses,
+          netProfit: updatedNetProfit,
+          profitMargin: Math.round(updatedMargin * 10) / 10,
+          financialHistory: [record, ...comp.financialHistory]
+        };
+      }
+
+      const updatedSecrets = prev.secretRecipes.map((s) => {
+        if (s.id === secretId) {
+          return {
+            ...s,
+            isPurchased: true,
+            status: 'purchased' as const,
+            unlockedAt: now
+          };
+        }
+        return s;
+      });
+
+      return {
+        ...prev,
+        companies: updatedCompanies,
+        secretRecipes: updatedSecrets
+      };
+    });
+
+    addToast({
+      type: 'success',
+      title: '📁 Gizli Dosya Satın Alındı!',
+      message: `${secret.codeName} sarı zarfı açıldı. 3 tahmin hakkınızla AR-GE'de çözmeye başlayabilirsiniz!`
+    });
+  }, [gameState.secretRecipes, playerCompany, addToast]);
+
+  // Action: Guess Secret Recipe Notes (Max 3 Attempts)
+  const guessSecretRecipe = useCallback((
+    secretId: string,
+    topNotes: string[],
+    middleNotes: string[],
+    baseNotes: string[]
+  ): SecretRecipeAttempt => {
+    const secret = gameState.secretRecipes.find((s) => s.id === secretId);
+    if (!secret) throw new Error('Gizli reçete bulunamadı.');
+    if (!secret.isPurchased) throw new Error('Önce bu gizli reçeteyi satın almalısınız.');
+    if (secret.status === 'solved') throw new Error('Bu reçete zaten başarıyla çözüldü.');
+    if (secret.attemptsLeft <= 0 || secret.status === 'failed') throw new Error('Tahmin haklarınız tükendi.');
+
+    const { attempt, isSolved, discoveredNotes } = evaluateSecretAttempt(
+      secret,
+      topNotes,
+      middleNotes,
+      baseNotes,
+      rawMaterialsMap,
+      playerPerfumer
+    );
+
+    const newAttemptsLeft = secret.attemptsLeft - 1;
+    const newStatus: 'solved' | 'failed' | 'purchased' = isSolved ? 'solved' : (newAttemptsLeft <= 0 ? 'failed' : 'purchased');
+
+    let solvedPerfume: Perfume | null = null;
+    if (isSolved) {
+      solvedPerfume = convertSecretToPerfume(secret, playerCompany.id, playerPerfumer);
+    }
+
+    setGameState((prev) => {
+      const updatedSecrets = prev.secretRecipes.map((s) => {
+        if (s.id === secretId) {
+          return {
+            ...s,
+            attemptsLeft: newAttemptsLeft,
+            status: newStatus,
+            attempts: [...s.attempts, attempt],
+            discoveredNotes: discoveredNotes
+          };
+        }
+        return s;
+      });
+
+      let updatedPerfumes = prev.perfumes;
+      if (solvedPerfume && !prev.perfumes.some((p) => p.id === solvedPerfume.id)) {
+        updatedPerfumes = [solvedPerfume, ...prev.perfumes];
+      }
+
+      return {
+        ...prev,
+        secretRecipes: updatedSecrets,
+        perfumes: updatedPerfumes
+      };
+    });
+
+    if (isSolved) {
+      addToast({
+        type: 'success',
+        title: '🎉 PARFÜMÜ İCAT ETTİN!',
+        message: `Tebrikler! ${secret.realPerfume.brand} - ${secret.realPerfume.name} formülünü çözdün ve üretim kataloğuna kazandırdın!`
+      });
+    } else if (newAttemptsLeft === 0) {
+      addToast({
+        type: 'error',
+        title: '❌ 3 Tahmin Hakkı Bitti',
+        message: `${secret.codeName} çözülemedi ve kilitlendi. Parfümatör yorumunu inceleyebilirsiniz.`
+      });
+    } else {
+      addToast({
+        type: 'info',
+        title: `🔍 Parfümatör Analizi (Kalan Hak: ${newAttemptsLeft})`,
+        message: attempt.perfumerComment
+      });
+    }
+
+    return attempt;
+  }, [gameState.secretRecipes, rawMaterialsMap, playerCompany.id, playerPerfumer, addToast]);
+
+  // Action: Unlock & Solve Secret Recipe directly in AR-GE
+  const unlockSecretRecipeDirectly = useCallback((secretId: string) => {
+    const secret = gameState.secretRecipes.find((s) => s.id === secretId);
+    if (!secret) return;
+    if (!secret.isPurchased) {
+      addToast({
+        type: 'error',
+        title: 'Önce Zarfı Satın Alın',
+        message: 'Bu gizli formülü laboratuvarda çözebilmek için önce sarı zarfı satın almalısınız.'
+      });
+      return;
+    }
+
+    const solvedPerfume = convertSecretToPerfume(secret, playerCompany.id, playerPerfumer);
+
+    setGameState((prev) => {
+      const updatedSecrets = prev.secretRecipes.map((s) => {
+        if (s.id === secretId) {
+          return {
+            ...s,
+            status: 'solved' as const
+          };
+        }
+        return s;
+      });
+
+      let updatedPerfumes = prev.perfumes;
+      if (!prev.perfumes.some((p) => p.id === solvedPerfume.id)) {
+        updatedPerfumes = [solvedPerfume, ...prev.perfumes];
+      }
+
+      return {
+        ...prev,
+        secretRecipes: updatedSecrets,
+        perfumes: updatedPerfumes
+      };
+    });
+
+    addToast({
+      type: 'success',
+      title: '🏆 Gizli Reçete Çözüldü & Üretime Eklendi!',
+      message: `"${solvedPerfume.name}" (${solvedPerfume.brand}) AR-GE laboratuvarında çözüldü! Artık Üretim sayfasında üretilebilir.`
+    });
+  }, [gameState.secretRecipes, playerCompany.id, playerPerfumer, addToast]);
+
   // Action: Reset Game
   const resetGame = useCallback(() => {
     const initial = resetGameState();
@@ -736,6 +1041,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         perfumers: gameState.perfumers,
         orders: gameState.orders,
         rndArchive: gameState.rndArchive,
+        secretRecipes: gameState.secretRecipes,
         activeTab,
         setActiveTab,
         playerCompany,
@@ -752,8 +1058,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         instantCompleteProduction,
         sellToOrder,
         conductRnd,
+        saveRndFormula,
         registerRndPerfume,
         assignPerfumerToPlayerCompany,
+        buySecretRecipe,
+        guessSecretRecipe,
+        unlockSecretRecipeDirectly,
         resetGame
       }}
     >

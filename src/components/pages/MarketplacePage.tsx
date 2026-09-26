@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useGame } from '../../context/GameContext';
 import { RawMaterial } from '../../types';
 import { MiniChart } from '../common/MiniChart';
-import { CountryFlag } from '../common/CountryFlag';
+import { NoteImage } from '../common/NoteImage';
 import { calculatePurchase, TAX_RATE, LOGISTICS_RATE, WASTE_RATE } from '../../services/economyEngine';
 import {
   formatDurationToMinutesAndSeconds,
@@ -197,14 +197,15 @@ export const MarketplacePage: React.FC = () => {
                 onClick={() => handleOpenDetail(material)}
                 className="group bg-slate-900/80 hover:bg-slate-900 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-5 shadow-lg hover:shadow-amber-500/5 cursor-pointer transition-all duration-200 flex flex-col justify-between"
               >
-                {/* Top: Required format: HAMMADDE ADI, ÜLKE, ÜLKE BAYRAĞI */}
+                {/* Top: Required format: HAMMADDE ADI, ÜLKE, ÜLKE BAYRAĞI & FRAGRANTICA NOTA RESMİ */}
                 <div className="min-w-0">
-                  <div className="flex items-start gap-2.5 mb-2 min-w-0">
-                    <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 shrink-0 flex items-center justify-center">
-                      <CountryFlag
-                        countryCode={material.countryCode}
-                        country={material.country}
-                        fallbackEmoji={material.flag}
+                  <div className="flex items-start gap-3 mb-2 min-w-0">
+                    <div className="relative shrink-0">
+                      <NoteImage
+                        id={material.id}
+                        src={material.image}
+                        name={material.name}
+                        fallbackEmoji="🌿"
                         size="lg"
                       />
                     </div>
@@ -212,14 +213,8 @@ export const MarketplacePage: React.FC = () => {
                       <h3 className="text-base font-bold text-white uppercase tracking-tight group-hover:text-amber-300 transition-colors truncate">
                         {material.name}
                       </h3>
-                      {/* Ülke bilgisi: [Bayrak] Madagaskar · mg */}
+                      {/* Ülke bilgisi: Madagaskar */}
                       <div className="text-[11px] font-semibold text-amber-400/95 tracking-wide mt-1 flex items-center gap-1.5 flex-wrap">
-                        <CountryFlag
-                          countryCode={material.countryCode}
-                          country={material.country}
-                          fallbackEmoji={material.flag}
-                          size="xs"
-                        />
                         <span>{formatCountryNameWithCode(material)}</span>
                       </div>
                     </div>
@@ -350,22 +345,19 @@ export const MarketplacePage: React.FC = () => {
                       className="hover:bg-slate-800/40 cursor-pointer transition-colors"
                     >
                       <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <CountryFlag
-                            countryCode={m.countryCode}
-                            country={m.country}
-                            fallbackEmoji={m.flag}
-                            size="md"
-                          />
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="relative shrink-0">
+                            <NoteImage
+                              id={m.id}
+                              src={m.image}
+                              name={m.name}
+                              fallbackEmoji="🌿"
+                              size="md"
+                            />
+                          </div>
                           <div className="min-w-0">
                             <div className="font-bold text-white text-sm uppercase">{m.name}</div>
                             <div className="text-[11px] font-semibold text-amber-400 flex items-center gap-1 mt-0.5">
-                              <CountryFlag
-                                countryCode={m.countryCode}
-                                country={m.country}
-                                fallbackEmoji={m.flag}
-                                size="xs"
-                              />
                               <span>{formatCountryNameWithCode(m)}</span>
                             </div>
                             <div className="text-[10px] text-slate-400 truncate">{formatNoteCategory(m.category)}</div>
@@ -423,12 +415,13 @@ export const MarketplacePage: React.FC = () => {
             
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-800 bg-slate-950/60">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="p-2.5 rounded-2xl bg-slate-900 border border-slate-800 shrink-0 flex items-center justify-center">
-                  <CountryFlag
-                    countryCode={selectedMaterial.countryCode}
-                    country={selectedMaterial.country}
-                    fallbackEmoji={selectedMaterial.flag}
+              <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                <div className="relative shrink-0">
+                  <NoteImage
+                    id={selectedMaterial.id}
+                    src={selectedMaterial.image}
+                    name={selectedMaterial.name}
+                    fallbackEmoji="🌿"
                     size="xl"
                   />
                 </div>
@@ -446,12 +439,6 @@ export const MarketplacePage: React.FC = () => {
                   </div>
                   <div className="text-xs font-semibold text-amber-400 uppercase mt-1 flex items-center gap-1.5 flex-wrap">
                     <span>ORİJİN ÜLKE:</span>
-                    <CountryFlag
-                      countryCode={selectedMaterial.countryCode}
-                      country={selectedMaterial.country}
-                      fallbackEmoji={selectedMaterial.flag}
-                      size="xs"
-                    />
                     <span>{formatCountryNameWithCode(selectedMaterial)}</span>
                     <span className="text-slate-500">|</span>
                     <span>Üretici: {selectedMaterial.producerCompany}</span>

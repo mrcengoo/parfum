@@ -2,7 +2,7 @@ import React from 'react';
 import { useGame } from '../../context/GameContext';
 import { CountdownTimer } from '../common/CountdownTimer';
 import { MiniChart } from '../common/MiniChart';
-import { CountryFlag } from '../common/CountryFlag';
+import { NoteImage } from '../common/NoteImage';
 import { formatCountryNameWithCode } from '../../data/rawMaterials';
 import {
   Coins,
@@ -373,21 +373,18 @@ export const OverviewPage: React.FC = () => {
                   className="flex items-center justify-between p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 hover:border-slate-700 cursor-pointer transition-all"
                 >
                   <div className="flex items-center gap-3">
-                    <CountryFlag
-                      countryCode={item.countryCode}
-                      country={item.country}
-                      fallbackEmoji={item.flag}
-                      size="md"
-                    />
+                    <div className="relative shrink-0">
+                      <NoteImage
+                        id={item.id}
+                        src={item.image}
+                        name={item.name}
+                        fallbackEmoji="🌿"
+                        size="md"
+                      />
+                    </div>
                     <div>
                       <div className="text-sm font-bold text-white">{item.name}</div>
                       <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-                        <CountryFlag
-                          countryCode={item.countryCode}
-                          country={item.country}
-                          fallbackEmoji={item.flag}
-                          size="xs"
-                        />
                         <span>{formatCountryNameWithCode(item)}</span>
                         <span>• Stok: {item.exchangeStock}</span>
                       </div>

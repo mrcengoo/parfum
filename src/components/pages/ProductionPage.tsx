@@ -3,7 +3,7 @@ import { useGame } from '../../context/GameContext';
 import { Perfume, ProductionBatchSize } from '../../types';
 import { checkRecipeRequirements, getProductionDuration } from '../../services/productionEngine';
 import { CountdownTimer } from '../common/CountdownTimer';
-import { CountryFlag } from '../common/CountryFlag';
+import { NoteImage } from '../common/NoteImage';
 import {
   Factory,
   CheckCircle2,
@@ -23,6 +23,7 @@ import {
 export const ProductionPage: React.FC = () => {
   const {
     perfumes,
+    perfumesMap,
     playerCompany,
     playerPerfumer,
     rawMaterialsMap,
@@ -98,6 +99,36 @@ export const ProductionPage: React.FC = () => {
                 <div className="text-xs text-slate-400">
                   Üretilen: <strong className="text-white font-mono">{playerCompany.activeProduction.batchSize} ŞİŞE</strong> | Tahmini Birim Maliyet: {playerCompany.activeProduction.costBreakdown.unitCost} ₺
                 </div>
+
+                {/* Formül Notaları Fragrantica Görselleri */}
+                {(() => {
+                  const producingPerfume = perfumesMap.get(playerCompany.activeProduction.perfumeId);
+                  if (!producingPerfume) return null;
+                  return (
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      <span className="text-[10px] text-emerald-400 font-semibold uppercase">Formül Notaları:</span>
+                      {producingPerfume.recipe.map((r) => {
+                        const mat = rawMaterialsMap.get(r.rawMaterialId);
+                        return (
+                          <div
+                            key={r.rawMaterialId}
+                            className="flex items-center gap-1 bg-slate-950/80 px-1.5 py-0.5 rounded-lg border border-slate-800 text-[10px]"
+                            title={mat?.name || r.rawMaterialId}
+                          >
+                            <NoteImage
+                              id={r.rawMaterialId}
+                              src={mat?.image}
+                              name={mat?.name}
+                              fallbackEmoji="🌿"
+                              size="xs"
+                            />
+                            <span className="text-slate-300 font-medium">{mat?.name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -166,10 +197,12 @@ export const ProductionPage: React.FC = () => {
                         {perfume.gender}
                       </span>
 
-                      {/* ORİJİNAL vs AR-GE ETİKETİ */}
+                      {/* ORİJİNAL vs AR-GE vs SECRET ETİKETİ */}
                       <span
                         className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded border ${
-                          isRnd
+                          perfume.sourceType === 'SECRET'
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold'
+                            : isRnd
                             ? 'bg-purple-500/20 text-purple-300 border-purple-500/40 font-bold'
                             : 'bg-blue-500/20 text-blue-300 border-blue-500/40'
                         }`}
@@ -178,7 +211,21 @@ export const ProductionPage: React.FC = () => {
                       </span>
 
                       {perfume.resultLevel && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                            perfume.resultLevel === 'Efsanevi'
+                              ? 'bg-amber-500 text-slate-950 border-amber-400 font-black'
+                              : perfume.resultLevel === 'Nadir'
+                              ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+                              : perfume.resultLevel === 'Kaliteli'
+                              ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                              : perfume.resultLevel === 'Standart'
+                              ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                              : perfume.resultLevel === 'Sıradan'
+                              ? 'bg-slate-800 text-slate-300 border-slate-700'
+                              : 'bg-rose-950/30 text-rose-300 border-rose-500/40'
+                          }`}
+                        >
                           {perfume.resultLevel}
                         </span>
                       )}
@@ -232,14 +279,13 @@ export const ProductionPage: React.FC = () => {
                             ) : (
                               <XCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                             )}
-                            {mat && (
-                              <CountryFlag
-                                countryCode={mat.countryCode}
-                                country={mat.country}
-                                fallbackEmoji={mat.flag}
-                                size="xs"
-                              />
-                            )}
+                            <NoteImage
+                              id={item.rawMaterialId}
+                              src={mat?.image}
+                              name={item.name}
+                              fallbackEmoji="🌿"
+                              size="xs"
+                            />
                             <span className="font-semibold truncate">{item.name}</span>
                           </div>
 
@@ -253,19 +299,6 @@ export const ProductionPage: React.FC = () => {
                       );
                     })}
                   </div>
-
-                  {/* Missing Essence Warning Banner */}
-                  {isMissingAny && (
-                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-start gap-2 mt-3">
-                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                      <div className="leading-tight">
-                        <span className="font-bold">{reqCheck.missingSummaryText}</span>
-                        <div className="text-[11px] text-rose-400/80 mt-0.5">
-                          Hammadde Borsasından eksik esansları satın alabilirsiniz.
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Batch Cost & Time Calculation Summary */}
@@ -311,10 +344,11 @@ export const ProductionPage: React.FC = () => {
                   </button>
                 ) : (
                   <button
-                    onClick={() => setActiveTab('market')}
-                    className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold text-xs rounded-xl border border-slate-700 transition-colors flex items-center justify-center gap-2"
+                    disabled
+                    className="w-full py-2.5 bg-slate-800/80 text-rose-400 font-bold text-xs rounded-xl border border-rose-900/40 cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Eksik Esansları Borsadan Al <ChevronRight className="w-4 h-4" />
+                    <XCircle className="w-4 h-4 text-rose-400" />
+                    Yetersiz Hammadde Stoğu
                   </button>
                 )}
               </div>

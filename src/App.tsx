@@ -12,6 +12,7 @@ import { OrdersPage } from './components/pages/OrdersPage';
 import { FinancePage } from './components/pages/FinancePage';
 import { CompaniesPage } from './components/pages/CompaniesPage';
 import { RndPage } from './components/pages/RndPage';
+import { SecretRecipesPage } from './components/pages/SecretRecipesPage';
 
 const GameContent: React.FC = () => {
   const { activeTab } = useGame();
@@ -36,6 +37,8 @@ const GameContent: React.FC = () => {
         return <FinancePage />;
       case 'rnd':
         return <RndPage />;
+      case 'secret_recipes':
+        return <SecretRecipesPage />;
       default:
         return <OverviewPage />;
     }

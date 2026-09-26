@@ -1,6 +1,7 @@
 import { RawMaterial, PricePoint } from '../types';
+import { RAW_MATERIAL_IMAGES } from './rawMaterialImages';
 
-export const INITIAL_RAW_MATERIALS: RawMaterial[] = [
+const RAW_MATERIALS_DATA: RawMaterial[] = [
   {
     id: 'vanilya',
     name: 'Vanilya',
@@ -729,8 +730,148 @@ export const INITIAL_RAW_MATERIALS: RawMaterial[] = [
       { timestamp: Date.now() - 30000, price: 166 },
       { timestamp: Date.now(), price: 165 }
     ]
+  },
+  {
+    id: 'greyfurt',
+    name: 'Florida Greyfurtu',
+    country: 'Amerika Birleşik Devletleri',
+    countryCode: 'US',
+    flag: '🇺🇸',
+    price: 120,
+    basePrice: 120,
+    exchangeStock: 4800,
+    producerCompany: 'Florida Citrus Grove Ltd.',
+    taxRate: 0.20,
+    logisticsRate: 0.15,
+    wasteRate: 0.25,
+    shippingTime: 230,
+    productionTime: 230,
+    supply: 70,
+    demand: 80,
+    category: 'Narenciye',
+    description: 'Acımsı, sulu ve canlı narenciye tazeliği; modern parfümerinin ışıltılı ve enerjik açılış notası.',
+    priceHistory: [
+      { timestamp: Date.now() - 120000, price: 118 },
+      { timestamp: Date.now() - 90000, price: 119 },
+      { timestamp: Date.now() - 60000, price: 121 },
+      { timestamp: Date.now() - 30000, price: 120.5 },
+      { timestamp: Date.now(), price: 120 }
+    ]
+  },
+  {
+    id: 'tarcin',
+    name: 'Seylan Tarçını',
+    country: 'Sri Lanka',
+    countryCode: 'LK',
+    flag: '🇱🇰',
+    price: 230,
+    basePrice: 230,
+    exchangeStock: 2400,
+    producerCompany: 'Ceylon Royal Spices',
+    taxRate: 0.20,
+    logisticsRate: 0.15,
+    wasteRate: 0.25,
+    shippingTime: 380,
+    productionTime: 380,
+    supply: 45,
+    demand: 85,
+    category: 'Baharat & Sıcak',
+    description: 'Seylan adasının en saf kabuklarından damıtılan sıcak, tatlımsı ve odunsu lüks baharat esansı.',
+    priceHistory: [
+      { timestamp: Date.now() - 120000, price: 225 },
+      { timestamp: Date.now() - 90000, price: 228 },
+      { timestamp: Date.now() - 60000, price: 231 },
+      { timestamp: Date.now() - 30000, price: 229 },
+      { timestamp: Date.now(), price: 230 }
+    ]
+  },
+  {
+    id: 'visne',
+    name: 'Kara Kiraz / Vişne',
+    country: 'Türkiye',
+    countryCode: 'TR',
+    flag: '🇹🇷',
+    price: 175,
+    basePrice: 175,
+    exchangeStock: 3200,
+    producerCompany: 'Anatolia Cherry Distillers',
+    taxRate: 0.20,
+    logisticsRate: 0.15,
+    wasteRate: 0.25,
+    shippingTime: 210,
+    productionTime: 210,
+    supply: 60,
+    demand: 88,
+    category: 'Meyvemsi & Gurme',
+    description: 'Derin bordo, tatlı-mayhoş ve likör çağrışımlı baştan çıkarıcı zengin vişne ve kiraz akoru.',
+    priceHistory: [
+      { timestamp: Date.now() - 120000, price: 170 },
+      { timestamp: Date.now() - 90000, price: 172 },
+      { timestamp: Date.now() - 60000, price: 176 },
+      { timestamp: Date.now() - 30000, price: 174 },
+      { timestamp: Date.now(), price: 175 }
+    ]
+  },
+  {
+    id: 'iris',
+    name: 'Floransa İrisi (Orris)',
+    country: 'İtalya',
+    countryCode: 'IT',
+    flag: '🇮🇹',
+    price: 460,
+    basePrice: 460,
+    exchangeStock: 950,
+    producerCompany: 'Firenze Nobile Iris',
+    taxRate: 0.20,
+    logisticsRate: 0.15,
+    wasteRate: 0.25,
+    shippingTime: 260,
+    productionTime: 260,
+    supply: 30,
+    demand: 94,
+    category: 'Çiçeksi & Pudramsı',
+    description: 'Toskana tepelerinde 3 yıl kurutulup damıtılan, dünyanın en pahalı ve asil pudramsı çiçeksi orris kökü.',
+    priceHistory: [
+      { timestamp: Date.now() - 120000, price: 450 },
+      { timestamp: Date.now() - 90000, price: 455 },
+      { timestamp: Date.now() - 60000, price: 462 },
+      { timestamp: Date.now() - 30000, price: 458 },
+      { timestamp: Date.now(), price: 460 }
+    ]
+  },
+  {
+    id: 'nane',
+    name: 'Mitcham Nanesi',
+    country: 'Birleşik Krallık',
+    countryCode: 'GB',
+    flag: '🇬🇧',
+    price: 105,
+    basePrice: 105,
+    exchangeStock: 5400,
+    producerCompany: 'Mitcham Mint Botanicals',
+    taxRate: 0.20,
+    logisticsRate: 0.15,
+    wasteRate: 0.25,
+    shippingTime: 200,
+    productionTime: 200,
+    supply: 75,
+    demand: 65,
+    category: 'Aromatik & Ferah',
+    description: 'İngiliz kır bahçelerinden toplanan buzlu, aromatik ve keskin ferahlatıcı doğal yeşil nane özü.',
+    priceHistory: [
+      { timestamp: Date.now() - 120000, price: 108 },
+      { timestamp: Date.now() - 90000, price: 106 },
+      { timestamp: Date.now() - 60000, price: 105 },
+      { timestamp: Date.now() - 30000, price: 104.5 },
+      { timestamp: Date.now(), price: 105 }
+    ]
   }
 ];
+
+export const INITIAL_RAW_MATERIALS: RawMaterial[] = RAW_MATERIALS_DATA.map((mat) => ({
+  ...mat,
+  image: RAW_MATERIAL_IMAGES[mat.id]
+}));
 
 export function getFlagEmoji(countryCode?: string): string {
   if (!countryCode) return '🌐';
@@ -742,14 +883,11 @@ export function getFlagEmoji(countryCode?: string): string {
 }
 
 export function formatCountryDisplay(material: { country: string; countryCode?: string; flag?: string }): string {
-  const flag = material.flag || getFlagEmoji(material.countryCode);
-  const code = (material.countryCode || '').toLowerCase();
-  return `${flag} ${material.country}${code ? ` · ${code}` : ''}`;
+  return material.country;
 }
 
 export function formatCountryNameWithCode(material: { country: string; countryCode?: string }): string {
-  const code = (material.countryCode || '').toLowerCase();
-  return `${material.country}${code ? ` · ${code}` : ''}`;
+  return material.country;
 }
 
 export function formatDurationToMinutesAndSeconds(seconds: number): string {

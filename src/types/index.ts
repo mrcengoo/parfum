@@ -30,19 +30,37 @@ export interface RawMaterial {
   priceHistory: PricePoint[];
   category?: string; // e.g. "Çiçeksi · Tatlı · Odunsu"
   description?: string;
+  image?: string; // Fragrantica note image URL
 }
 
 export interface RecipeItem {
   rawMaterialId: string;
   amount: number; // units required for 100 bottles batch (scales proportionally for 1, 5, 10, 50, 100)
   noteType: NoteType;
+  drops?: number;
+  rawMaterialName?: string;
+}
+
+export interface FormulaNoteItem {
+  rawMaterialId: string;
+  rawMaterialName: string;
+  drops: number;
+  noteType: NoteType;
 }
 
 export type GenderType = 'KADIN' | 'ERKEK' | 'UNISEX';
 
-export type PerfumeSourceType = 'ORİJİNAL' | 'AR-GE';
+export type PerfumeSourceType = 'ORİJİNAL' | 'AR-GE' | 'SECRET';
 
-export type RndResultLevel = 'KÖTÜ' | 'ORTA' | 'İYİ' | 'ÇOK İYİ' | 'İMZA';
+export type PerfumeQualityLevel =
+  | 'Basit'
+  | 'Sıradan'
+  | 'Standart'
+  | 'Kaliteli'
+  | 'Nadir'
+  | 'Efsanevi';
+
+export type RndResultLevel = PerfumeQualityLevel;
 
 export interface Perfumer {
   id: string;
@@ -164,6 +182,7 @@ export type FinancialCategory =
   | 'perfumer_royalty'
   | 'rnd_design_fee'
   | 'rnd_expense'
+  | 'secret_recipe_purchase'
   | 'other';
 
 export type FinancialType = 'income' | 'expense';
@@ -238,10 +257,85 @@ export interface RndResult {
   productionTime: number;
   recipe: RecipeItem[];
   notesSummary: string;
+  perfumerReview?: string;
   designFee: number;
   royaltyRate: number;
   createdAt: number;
   isAddedToProduction?: boolean;
+  totalDrops?: number;
+  topDrops?: number;
+  midDrops?: number;
+  baseDrops?: number;
+  topPercentage?: number;
+  midPercentage?: number;
+  basePercentage?: number;
+  formulaItems?: FormulaNoteItem[];
+}
+
+export type EvaluatedNoteStatus = 'green' | 'orange' | 'gray';
+
+export interface EvaluatedNoteItem {
+  id: string;
+  name: string;
+  tier: NoteType; // 'top' | 'middle' | 'base'
+  status: EvaluatedNoteStatus; // 'green' | 'orange' | 'gray'
+  statusText: string; // 'Doğru nota + doğru katman' | 'Doğru nota + yanlış katman' | 'Formülde yok'
+}
+
+export interface DiscoveredSecretNote {
+  id: string;
+  name: string;
+  tier: NoteType;
+  status: 'green' | 'orange';
+}
+
+export interface SecretRecipeAttempt {
+  attemptNumber: number; // 1, 2, 3
+  timestamp: number;
+  topNotes: string[];
+  middleNotes: string[];
+  baseNotes: string[];
+  correctCount: number;
+  totalGuessed?: number;
+  totalRequired: number;
+  isFullyCorrect: boolean;
+  perfumerComment: string; // Hattrick-style scouting feedback
+  densityComment?: string; // Parfümörün nota yoğunluğu yorumu
+  clueComment?: string; // Bir sonraki araştırma için koku ipucu
+  evaluatedNotes?: EvaluatedNoteItem[];
+  greenNotes?: string[];
+  orangeNotes?: string[];
+  grayNotes?: string[];
+}
+
+export interface SecretRecipe {
+  id: string; // e.g. 'secret_terre_hermes'
+  codeName: string; // e.g. 'PROJE TERRA NOBILE'
+  purchasePrice: number; // e.g. 32000 ₺
+  isPurchased: boolean;
+  status: 'locked' | 'purchased' | 'solved' | 'failed';
+  attemptsLeft: number; // max 3
+  attempts: SecretRecipeAttempt[];
+  hint: string; // Parfümatörün koku ipucu
+  unlockedAt?: number;
+  discoveredNotes?: DiscoveredSecretNote[];
+
+  // Real Fragrantica identity (revealed ONLY when solved):
+  realPerfume: {
+    id: string;
+    name: string;
+    brand: string;
+    gender: GenderType;
+    qualityLevel: 'Standart' | 'Kaliteli' | 'Nadir'; // Never Efsanevi!
+    qualityScore: number;
+    description: string;
+    image: string;
+    suggestedRetailPrice: number;
+    recipe: RecipeItem[];
+    topNotes: string[];
+    middleNotes: string[];
+    baseNotes: string[];
+  };
 }
 
 export type ActiveTab =
@@ -253,4 +347,5 @@ export type ActiveTab =
   | 'product_storage'
   | 'orders'
   | 'finance'
-  | 'rnd';
+  | 'rnd'
+  | 'secret_recipes';

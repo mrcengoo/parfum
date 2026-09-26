@@ -36,6 +36,7 @@ export const FinancePage: React.FC = () => {
     let totalGrossSales = 0;
     let totalRoyaltiesPaid = 0;
     let totalRndDesignFees = 0;
+    let totalSecretPurchases = 0;
     let totalPurchases = 0;
 
     history.forEach((record) => {
@@ -47,6 +48,9 @@ export const FinancePage: React.FC = () => {
       }
       if (record.category === 'rnd_design_fee') {
         totalRndDesignFees += record.amount;
+      }
+      if (record.category === 'secret_recipe_purchase') {
+        totalSecretPurchases += record.amount;
       }
       if (record.category === 'raw_material_purchase') {
         totalPurchases += record.amount;
@@ -60,6 +64,7 @@ export const FinancePage: React.FC = () => {
       totalRoyaltiesPaid,
       netSalesIncome,
       totalRndDesignFees,
+      totalSecretPurchases,
       totalPurchases
     };
   }, [history]);
@@ -250,6 +255,7 @@ export const FinancePage: React.FC = () => {
                   const isIncome = item.type === 'income';
                   const isRoyalty = item.category === 'perfumer_royalty';
                   const isRndFee = item.category === 'rnd_design_fee';
+                  const isSecretPurchase = item.category === 'secret_recipe_purchase';
                   const dateStr = new Date(item.timestamp).toLocaleString('tr-TR');
 
                   return (
@@ -264,6 +270,8 @@ export const FinancePage: React.FC = () => {
                               ? 'bg-purple-500/10 text-purple-300 border-purple-500/40'
                               : isRndFee
                               ? 'bg-amber-500/10 text-amber-300 border-amber-500/40'
+                              : isSecretPurchase
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 font-bold'
                               : isIncome
                               ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                               : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
@@ -273,6 +281,8 @@ export const FinancePage: React.FC = () => {
                             ? 'PARFÜMATÖR TELİFİ'
                             : isRndFee
                             ? 'AR-GE TASARIM ÜCRETİ'
+                            : isSecretPurchase
+                            ? 'GİZLİ REÇETE DOSYASI'
                             : isIncome
                             ? 'PARFÜM SATIŞI'
                             : 'GİDER'}

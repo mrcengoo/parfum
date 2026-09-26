@@ -9,7 +9,17 @@ export const INITIAL_COMPANIES: Company[] = [
     isPlayer: true,
     perfumerId: 'mert_aksoy', // Mert Aksoy
     cash: 500000,
-    essenceStorage: {},
+    essenceStorage: {
+      bergamot: { rawMaterialId: 'bergamot', quantity: 180, totalCostBasis: 20700, averageUnitCost: 115 },
+      yasemin: { rawMaterialId: 'yasemin', quantity: 150, totalCostBasis: 28500, averageUnitCost: 190 },
+      gul: { rawMaterialId: 'gul', quantity: 120, totalCostBasis: 37200, averageUnitCost: 310 },
+      sedir_agaci: { rawMaterialId: 'sedir_agaci', quantity: 160, totalCostBasis: 20800, averageUnitCost: 130 },
+      vanilya: { rawMaterialId: 'vanilya', quantity: 140, totalCostBasis: 18900, averageUnitCost: 135 },
+      lavanta: { rawMaterialId: 'lavanta', quantity: 150, totalCostBasis: 18750, averageUnitCost: 125 },
+      vetiver: { rawMaterialId: 'vetiver', quantity: 110, totalCostBasis: 23100, averageUnitCost: 210 },
+      greyfurt: { rawMaterialId: 'greyfurt', quantity: 130, totalCostBasis: 14300, averageUnitCost: 110 },
+      karabiber: { rawMaterialId: 'karabiber', quantity: 95, totalCostBasis: 15200, averageUnitCost: 160 }
+    },
     productStorage: {},
     activeShipments: [],
     activeProduction: null,

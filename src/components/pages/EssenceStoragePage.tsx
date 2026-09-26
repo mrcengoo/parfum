@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { CountdownTimer } from '../common/CountdownTimer';
-import { CountryFlag } from '../common/CountryFlag';
+import { NoteImage } from '../common/NoteImage';
 import { formatCountryNameWithCode } from '../../data/rawMaterials';
 import {
   FlaskRound,
@@ -105,11 +105,12 @@ export const EssenceStoragePage: React.FC = () => {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-slate-900 border border-slate-800 shrink-0">
-                        <CountryFlag
-                          countryCode={rawMat?.countryCode}
-                          country={rawMat?.country}
-                          fallbackEmoji={rawMat?.flag}
+                      <div className="relative shrink-0">
+                        <NoteImage
+                          id={shipment.rawMaterialId}
+                          src={rawMat?.image}
+                          name={shipment.rawMaterialName}
+                          fallbackEmoji="🌿"
                           size="lg"
                         />
                       </div>
@@ -120,12 +121,6 @@ export const EssenceStoragePage: React.FC = () => {
                         <div className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
                           {rawMat && (
                             <>
-                              <CountryFlag
-                                countryCode={rawMat.countryCode}
-                                country={rawMat.country}
-                                fallbackEmoji={rawMat.flag}
-                                size="xs"
-                              />
                               <span>{formatCountryNameWithCode(rawMat)}</span>
                               <span>•</span>
                             </>
@@ -231,26 +226,21 @@ export const EssenceStoragePage: React.FC = () => {
                   key={item.rawMaterialId}
                   className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-md hover:border-slate-700 transition-colors"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <CountryFlag
-                      countryCode={rawMat?.countryCode}
-                      country={rawMat?.country}
-                      fallbackEmoji={rawMat?.flag}
-                      size="md"
-                    />
+                  <div className="flex items-center gap-3">
+                    <div className="relative shrink-0">
+                      <NoteImage
+                        id={item.rawMaterialId}
+                        src={rawMat?.image}
+                        name={rawMat?.name || item.rawMaterialId}
+                        fallbackEmoji="🌿"
+                        size="md"
+                      />
+                    </div>
                     <div>
                       <h4 className="text-sm font-bold text-white">{rawMat?.name || item.rawMaterialId}</h4>
                       <div className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
                         {rawMat && (
-                          <>
-                            <CountryFlag
-                              countryCode={rawMat.countryCode}
-                              country={rawMat.country}
-                              fallbackEmoji={rawMat.flag}
-                              size="xs"
-                            />
-                            <span>{formatCountryNameWithCode(rawMat)}</span>
-                          </>
+                          <span>{formatCountryNameWithCode(rawMat)}</span>
                         )}
                       </div>
                     </div>

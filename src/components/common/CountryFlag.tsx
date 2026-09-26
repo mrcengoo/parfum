@@ -153,6 +153,31 @@ const SVG_FLAGS: Record<string, React.ReactNode> = {
       <rect width="1" height="1" fill="#0039a6" />
       <polygon points="0.5,0.25 0.55,0.42 0.72,0.42 0.58,0.52 0.63,0.7 0.5,0.59 0.37,0.7 0.42,0.52 0.28,0.42 0.45,0.42" fill="#ffffff" />
     </svg>
+  ),
+  gb: (
+    <svg viewBox="0 0 60 30" className="w-full h-full">
+      <clipPath id="s">
+        <path d="M0,0 v30 h60 v-30 z"/>
+      </clipPath>
+      <clipPath id="t">
+        <path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/>
+      </clipPath>
+      <g clipPath="url(#s)">
+        <path d="M0,0 v30 h60 v-30 z" fill="#012169"/>
+        <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6"/>
+        <path d="M0,0 L60,30 M60,0 L0,30" clipPath="url(#t)" stroke="#C8102E" strokeWidth="4"/>
+        <path d="M30,0 v30 M0,15 h60" stroke="#fff" strokeWidth="10"/>
+        <path d="M30,0 v30 M0,15 h60" stroke="#C8102E" strokeWidth="6"/>
+      </g>
+    </svg>
+  ),
+  lk: (
+    <svg viewBox="0 0 4 2" className="w-full h-full">
+      <rect width="4" height="2" fill="#ffbe29" />
+      <rect x="0.2" y="0.2" width="0.7" height="1.6" fill="#00534e" />
+      <rect x="0.9" y="0.2" width="0.7" height="1.6" fill="#eb7400" />
+      <rect x="1.8" y="0.2" width="2" height="1.6" fill="#8d153a" />
+    </svg>
   )
 };
 

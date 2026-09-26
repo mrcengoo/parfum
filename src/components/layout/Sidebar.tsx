@@ -10,7 +10,8 @@ import {
   Package,
   ClipboardList,
   Wallet,
-  Dna
+  Dna,
+  FileLock2
 } from 'lucide-react';
 
 interface NavItem {
@@ -99,8 +100,15 @@ export const Sidebar: React.FC = () => {
       id: 'rnd',
       label: 'AR-GE (ParfümATÖR)',
       icon: <Dna className="w-4 h-4" />,
-      badge: 'YENİ',
+      badge: 'İCAT',
       badgeColor: 'bg-purple-500/20 text-purple-300 font-bold'
+    },
+    {
+      id: 'secret_recipes',
+      label: 'Gizli Reçeteler',
+      icon: <FileLock2 className="w-4 h-4" />,
+      badge: '🟨 GİZLİ',
+      badgeColor: 'bg-amber-500/20 text-amber-300 font-bold'
     }
   ];
 
