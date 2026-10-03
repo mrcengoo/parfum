@@ -234,9 +234,9 @@ export const SecretRecipeDeductionLab: React.FC<SecretRecipeDeductionLabProps> =
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🟨</span>
+            <span className="text-xl">🏆</span>
             <span className="text-[11px] font-mono font-bold tracking-widest text-amber-400 uppercase bg-amber-500/10 px-2.5 py-0.5 rounded-lg border border-amber-500/30">
-              AR-GE GİZLİ REÇETE DEŞİFRE MASASI
+              ÖDÜLLÜ PARFÜM FORMÜL DEŞİFRE MASASI
             </span>
             <span
               className={`px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-bold border uppercase ${
@@ -430,7 +430,7 @@ export const SecretRecipeDeductionLab: React.FC<SecretRecipeDeductionLabProps> =
                       return (
                         <div
                           key={`top_${placement.id}`}
-                          className={`p-2 rounded-xl border flex items-center justify-between gap-2 text-xs transition-all ${
+                          className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs transition-all ${
                             isGreen
                               ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-200'
                               : isOrange
@@ -438,20 +438,25 @@ export const SecretRecipeDeductionLab: React.FC<SecretRecipeDeductionLabProps> =
                               : 'bg-slate-900 border-slate-800 text-slate-200'
                           }`}
                         >
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex items-center gap-2.5 min-w-0">
                             <NoteImage id={placement.id} src={mat?.image} name={mat?.name} size="xs" />
                             <div className="min-w-0">
-                              <div className="font-bold truncate text-[11px] flex items-center gap-1">
+                              <div className="font-bold truncate text-xs sm:text-sm text-white flex items-center gap-1.5">
                                 <span>{mat?.name || placement.id}</span>
                                 {isGreen && <span title="Doğru nota + doğru katman">🟢</span>}
                                 {isOrange && <span title="Doğru nota + yanlış katman">🟠</span>}
                               </div>
-                              <div className="text-[9px] text-slate-400">
-                                {isGreen
-                                  ? 'Doğru nota + doğru katman (Kilitli)'
-                                  : isOrange
-                                  ? 'Doğru nota + yanlış katman'
-                                  : 'Yeni Deneme'}
+                              <div className="text-[11px] font-medium text-slate-300 flex items-center gap-1.5 mt-0.5">
+                                {mat?.category && (
+                                  <span className="text-amber-400 font-semibold">{mat.category} •</span>
+                                )}
+                                <span>
+                                  {isGreen
+                                    ? 'Doğru nota + doğru katman (Kilitli)'
+                                    : isOrange
+                                    ? 'Doğru nota + yanlış katman'
+                                    : 'Yeni Deneme'}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -548,7 +553,7 @@ export const SecretRecipeDeductionLab: React.FC<SecretRecipeDeductionLabProps> =
                       return (
                         <div
                           key={`mid_${placement.id}`}
-                          className={`p-2 rounded-xl border flex items-center justify-between gap-2 text-xs transition-all ${
+                          className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs transition-all ${
                             isGreen
                               ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-200'
                               : isOrange
@@ -556,20 +561,25 @@ export const SecretRecipeDeductionLab: React.FC<SecretRecipeDeductionLabProps> =
                               : 'bg-slate-900 border-slate-800 text-slate-200'
                           }`}
                         >
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex items-center gap-2.5 min-w-0">
                             <NoteImage id={placement.id} src={mat?.image} name={mat?.name} size="xs" />
                             <div className="min-w-0">
-                              <div className="font-bold truncate text-[11px] flex items-center gap-1">
+                              <div className="font-bold truncate text-xs sm:text-sm text-white flex items-center gap-1.5">
                                 <span>{mat?.name || placement.id}</span>
                                 {isGreen && <span title="Doğru nota + doğru katman">🟢</span>}
                                 {isOrange && <span title="Doğru nota + yanlış katman">🟠</span>}
                               </div>
-                              <div className="text-[9px] text-slate-400">
-                                {isGreen
-                                  ? 'Doğru nota + doğru katman (Kilitli)'
-                                  : isOrange
-                                  ? 'Doğru nota + yanlış katman'
-                                  : 'Yeni Deneme'}
+                              <div className="text-[11px] font-medium text-slate-300 flex items-center gap-1.5 mt-0.5">
+                                {mat?.category && (
+                                  <span className="text-amber-400 font-semibold">{mat.category} •</span>
+                                )}
+                                <span>
+                                  {isGreen
+                                    ? 'Doğru nota + doğru katman (Kilitli)'
+                                    : isOrange
+                                    ? 'Doğru nota + yanlış katman'
+                                    : 'Yeni Deneme'}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -674,7 +684,7 @@ export const SecretRecipeDeductionLab: React.FC<SecretRecipeDeductionLabProps> =
                       return (
                         <div
                           key={`base_${placement.id}`}
-                          className={`p-2 rounded-xl border flex items-center justify-between gap-2 text-xs transition-all ${
+                          className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs transition-all ${
                             isGreen
                               ? 'bg-emerald-950/50 border-emerald-500/50 text-emerald-200'
                               : isOrange
@@ -682,20 +692,25 @@ export const SecretRecipeDeductionLab: React.FC<SecretRecipeDeductionLabProps> =
                               : 'bg-slate-900 border-slate-800 text-slate-200'
                           }`}
                         >
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex items-center gap-2.5 min-w-0">
                             <NoteImage id={placement.id} src={mat?.image} name={mat?.name} size="xs" />
                             <div className="min-w-0">
-                              <div className="font-bold truncate text-[11px] flex items-center gap-1">
+                              <div className="font-bold truncate text-xs sm:text-sm text-white flex items-center gap-1.5">
                                 <span>{mat?.name || placement.id}</span>
                                 {isGreen && <span title="Doğru nota + doğru katman">🟢</span>}
                                 {isOrange && <span title="Doğru nota + yanlış katman">🟠</span>}
                               </div>
-                              <div className="text-[9px] text-slate-400">
-                                {isGreen
-                                  ? 'Doğru nota + doğru katman (Kilitli)'
-                                  : isOrange
-                                  ? 'Doğru nota + yanlış katman'
-                                  : 'Yeni Deneme'}
+                              <div className="text-[11px] font-medium text-slate-300 flex items-center gap-1.5 mt-0.5">
+                                {mat?.category && (
+                                  <span className="text-amber-400 font-semibold">{mat.category} •</span>
+                                )}
+                                <span>
+                                  {isGreen
+                                    ? 'Doğru nota + doğru katman (Kilitli)'
+                                    : isOrange
+                                    ? 'Doğru nota + yanlış katman'
+                                    : 'Yeni Deneme'}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -820,28 +835,28 @@ export const SecretRecipeDeductionLab: React.FC<SecretRecipeDeductionLabProps> =
             </div>
 
             {/* Search and Filters */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
               <div className="relative flex-1">
-                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Nota veya koku ara..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                  placeholder="Nota veya hammadde ara (örn: Sedir, Karabiber, Vanilya)..."
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
-              <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 max-w-full">
-                {categories.slice(0, 5).map((cat) => (
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 max-w-full">
+                {categories.slice(0, 6).map((cat) => (
                   <button
                     key={cat}
                     type="button"
                     onClick={() => setCategoryFilter(cat)}
-                    className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all whitespace-nowrap ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase transition-all whitespace-nowrap ${
                       categoryFilter === cat
-                        ? 'bg-amber-500 text-slate-950'
-                        : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                        ? 'bg-amber-500 text-slate-950 shadow-sm'
+                        : 'bg-slate-950 text-slate-300 hover:text-white border border-slate-800'
                     }`}
                   >
                     {cat === 'ALL' ? 'Tümü' : cat}
@@ -851,7 +866,7 @@ export const SecretRecipeDeductionLab: React.FC<SecretRecipeDeductionLabProps> =
             </div>
 
             {/* Raw materials list */}
-            <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-2 sm:grid-cols-3 gap-2.5">
               {filteredMaterials.map((mat) => {
                 const isAlreadyPlaced = placedIds.has(mat.id);
 
@@ -861,19 +876,19 @@ export const SecretRecipeDeductionLab: React.FC<SecretRecipeDeductionLabProps> =
                     type="button"
                     disabled={isAlreadyPlaced}
                     onClick={() => handleSelectNewNote(mat.id)}
-                    className={`p-2 rounded-xl text-left border flex items-center gap-2 transition-all ${
+                    className={`p-2.5 rounded-xl text-left border flex items-center gap-2.5 transition-all ${
                       isAlreadyPlaced
                         ? 'bg-slate-950/40 border-slate-800/40 opacity-40 cursor-not-allowed'
-                        : 'bg-slate-950 hover:bg-slate-800/80 border-slate-800 hover:border-amber-500/50 text-slate-200'
+                        : 'bg-slate-950 hover:bg-slate-850 border-slate-800 hover:border-amber-500/60 text-slate-200 shadow-sm'
                     }`}
                   >
                     <NoteImage id={mat.id} src={mat.image} name={mat.name} size="sm" />
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold truncate flex items-center gap-1">
+                      <div className="text-xs sm:text-sm font-bold text-white truncate flex items-center gap-1">
                         <span>{mat.name}</span>
-                        {isAlreadyPlaced && <span className="text-[10px] text-amber-400">✓</span>}
+                        {isAlreadyPlaced && <span className="text-xs text-amber-400">✓</span>}
                       </div>
-                      <div className="text-[9px] text-slate-500 truncate">
+                      <div className="text-[11px] sm:text-xs text-amber-400 font-semibold truncate mt-0.5">
                         {mat.category || 'Esans'}
                       </div>
                     </div>
@@ -944,21 +959,21 @@ export const SecretRecipeDeductionLab: React.FC<SecretRecipeDeductionLabProps> =
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
-                        <span className="text-sm">
+                        <span className="text-base">
                           {isGreen ? '🟢' : isOrange ? '🟠' : '⚪'}
                         </span>
                         <div>
-                          <div className="font-bold text-white text-xs">
+                          <div className="font-bold text-white text-xs sm:text-sm">
                             {en.name}
                           </div>
-                          <div className="text-[10px] text-slate-400">
+                          <div className="text-[11px] text-slate-400">
                             Denenen Katman: {en.tier === 'top' ? 'Üst' : en.tier === 'middle' ? 'Orta' : 'Alt'} Nota
                           </div>
                         </div>
                       </div>
 
                       <span
-                        className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border ${
+                        className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
                           isGreen
                             ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                             : isOrange
@@ -976,11 +991,11 @@ export const SecretRecipeDeductionLab: React.FC<SecretRecipeDeductionLabProps> =
 
             {/* Parfümörün Nota Yoğunluğu Yorumu */}
             {lastAttemptResult.densityComment && (
-              <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800 space-y-1 text-xs">
-                <div className="flex items-center gap-1.5 font-bold text-amber-400 text-[11px]">
+              <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800 space-y-1.5 text-xs sm:text-sm">
+                <div className="flex items-center gap-1.5 font-bold text-amber-400 text-xs sm:text-sm">
                   <span>🔍 Parfümatör Nota Yoğunluğu Yorumu:</span>
                 </div>
-                <p className="text-slate-300 italic leading-relaxed">
+                <p className="text-slate-200 italic leading-relaxed text-xs sm:text-sm font-serif">
                   "{lastAttemptResult.densityComment}"
                 </p>
               </div>
@@ -988,18 +1003,18 @@ export const SecretRecipeDeductionLab: React.FC<SecretRecipeDeductionLabProps> =
 
             {/* Parfümatörün Koku İpucu */}
             {lastAttemptResult.clueComment && (
-              <div className="bg-purple-950/30 p-4 rounded-2xl border border-purple-500/30 space-y-1 text-xs">
-                <div className="flex items-center gap-1.5 font-bold text-purple-300 text-[11px]">
+              <div className="bg-purple-950/30 p-4 rounded-2xl border border-purple-500/30 space-y-1.5 text-xs sm:text-sm">
+                <div className="flex items-center gap-1.5 font-bold text-purple-300 text-xs sm:text-sm">
                   <span>💡 Sonraki Aşama İçin Koku İpucu:</span>
                 </div>
-                <p className="text-purple-200 italic leading-relaxed">
+                <p className="text-purple-100 italic leading-relaxed text-xs sm:text-sm font-serif">
                   "{lastAttemptResult.clueComment}"
                 </p>
               </div>
             )}
 
             {/* Parfümatör Genel Yorumu */}
-            <div className="text-xs text-slate-400 italic bg-slate-950/40 p-3 rounded-xl border border-slate-800/80">
+            <div className="text-xs sm:text-sm text-slate-200 italic bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80 leading-relaxed">
               💬 <strong>{playerPerfumer.name}:</strong> "{lastAttemptResult.perfumerComment}"
             </div>
 
@@ -1072,7 +1087,7 @@ export const SecretRecipeDeductionLab: React.FC<SecretRecipeDeductionLabProps> =
                     return (
                       <span
                         key={`log_n_${en.id}`}
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-medium border ${
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border ${
                           en.status === 'green'
                             ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
                             : en.status === 'orange'
@@ -1088,7 +1103,7 @@ export const SecretRecipeDeductionLab: React.FC<SecretRecipeDeductionLabProps> =
                 </div>
 
                 {att.densityComment && (
-                  <p className="text-[11px] text-slate-400 italic">
+                  <p className="text-xs text-slate-300 italic leading-relaxed pl-1">
                     "{att.densityComment}"
                   </p>
                 )}

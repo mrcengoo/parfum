@@ -312,24 +312,31 @@ export function evaluateSecretAttempt(
 }
 
 /**
- * Converts a solved secret recipe into a fully usable Perfume in player's production catalogue.
+ * Converts a solved secret recipe into a fully usable Perfume in player or bot production catalogue.
  */
-export function convertSecretToPerfume(secret: SecretRecipe, companyId: string, perfumer: Perfumer): Perfume {
+export function convertSecretToPerfume(
+  secret: SecretRecipe,
+  companyId: string,
+  perfumer: Perfumer,
+  companyName: string = 'AromaLux'
+): Perfume {
   const real = secret.realPerfume;
+  const isPlayer = companyId === 'aromalux';
+  const uniqueId = `perfume_secret_${real.id}_${companyId}_${Date.now()}`;
   return {
-    id: real.id,
+    id: uniqueId,
     name: real.name,
-    brand: real.brand,
+    brand: isPlayer ? real.brand : companyName,
     companyId,
-    companyName: 'AromaLux',
+    companyName,
     perfumerId: perfumer.id,
     perfumerName: perfumer.name,
     gender: real.gender,
     sourceType: 'SECRET',
     quality: real.qualityScore,
-    originality: 92,
-    noteHarmony: 94,
-    trendFit: 92,
+    originality: 95,
+    noteHarmony: 96,
+    trendFit: 94,
     resultLevel: real.qualityLevel,
     topNotes: real.topNotes,
     middleNotes: real.middleNotes,
@@ -341,9 +348,215 @@ export function convertSecretToPerfume(secret: SecretRecipe, companyId: string, 
     image: real.image,
     source: `Çözülmüş Gizli Reçete (${secret.codeName})`,
     suggestedRetailPrice: real.suggestedRetailPrice,
-    description: `${real.brand} efsanesi "${real.name}" (${secret.codeName}). Oyuncunun AR-GE laboratuvarında araştırılarak portföye kazandırıldı. ${real.description}`,
+    description: `${real.brand} şaheseri "${real.name}" (${secret.codeName}). ${companyName} AR-GE laboratuvarında araştırılarak deşifre edildi. ${real.description}`,
     designFee: 0,
-    royaltyRate: 0,
+    royaltyRate: 0.02,
     createdAt: Date.now()
   };
+}
+
+const TOP_NOTE_POOL = [
+  'bergamot', 'limon', 'greyfurt', 'nane', 'pembe_biber',
+  'karabiber', 'elma', 'ananas', 'yesil_cay', 'lavanta',
+  'ahududu', 'aldehitler', 'lici', 'biberiye', 'deniz_notalari'
+];
+
+const MID_NOTE_POOL = [
+  'yasemin', 'gul', 'iris', 'portakal_cicegi', 'tarcin',
+  'kakule', 'sichuan_biberi', 'tonka_fasulyesi', 'kakao', 'kahve',
+  'orkide', 'bal', 'visne', 'erik', 'subulteber', 'osmanthus'
+];
+
+const BASE_NOTE_POOL = [
+  'vanilya', 'sandal_agaci', 'sedir_agaci', 'paculi', 'vetiver',
+  'oud', 'amber', 'ambroksan', 'misk', 'deri',
+  'tütün_yapragi', 'tutsu', 'hus_agaci', 'meyan_koku'
+];
+
+const CODE_PREFIXES = ['PROJE', 'DOSYA', 'OPERASYON', 'FORMÜL'];
+const CODE_ADJECTIVES = ['AURA', 'NOCTURNE', 'ECLAT', 'MYSTERE', 'SOLAIRE', 'OLYMPUS', 'CELESTE', 'VELVET', 'OBSIDIAN', 'LUMIERE', 'ROYAL', 'IMPERIAL', 'SOVEREIGN', 'DIVIN', 'ARCANE'];
+const CODE_SUFFIXES = ['ROYALE', 'MAJESTE', 'NOBILE', 'IMPERIALE', 'ELIXIR', 'SUPREME', 'DIVIN', 'EXCLUSIF', 'PRESTIGE', 'ABSOLU'];
+
+const LUXURY_HOUSES = [
+  'Maison Royale', 'Atelier des Sens', 'Parfums de Grasse',
+  'Palazzo Nobile', 'Imperial Fragrance Guild', 'Haute Parfumerie Privée',
+  'Sovereign Scent Lab', 'Boutique Vendôme', 'Royal Alhambra', 'L’Élixir Sacré'
+];
+
+const LUXURY_PERFUME_TITLES = [
+  'Éclat d’Or', 'Mystère de Nuit', 'Oud Impérial', 'Santal Céleste', 'Velours de Rose',
+  'Iris Majestueux', 'Ambre Nocturne', 'Nectar Sauvage', 'Cuir Solaire', 'Fleur de Soie',
+  'Sovereign Reserve', 'Vetiver Nobile', 'Paradis Blanc', 'Chant d’Orient', 'L’Ombre Royale'
+];
+
+const LUXURY_IMAGES = [
+  'https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1615397349754-cfa2066a298e?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1595425970377-c9703cf48b6d?w=600&auto=format&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1583445013765-46c20c4a6772?w=600&auto=format&fit=crop&q=80'
+];
+
+/**
+ * Procedurally generates a 100% UNIQUE secret formula project.
+ * Checks against existing recipes AND existing perfumes to guarantee NO duplicate note combinations ever exist.
+ */
+export function generateUniqueSecretRecipe(
+  existingRecipes: SecretRecipe[] = [],
+  allPerfumes: Perfume[] = []
+): SecretRecipe {
+  // Collect all existing note signatures from both recipes and registered perfumes
+  const existingSignatures = new Set<string>();
+  
+  existingRecipes.forEach((r) => {
+    if (r.realPerfume) {
+      const topSig = [...(r.realPerfume.topNotes || [])].sort().join(',');
+      const midSig = [...(r.realPerfume.middleNotes || [])].sort().join(',');
+      const baseSig = [...(r.realPerfume.baseNotes || [])].sort().join(',');
+      existingSignatures.add(`${topSig}::${midSig}::${baseSig}`);
+    }
+  });
+
+  allPerfumes.forEach((p) => {
+    const topSig = [...(p.topNotes || [])].sort().join(',');
+    const midSig = [...(p.middleNotes || [])].sort().join(',');
+    const baseSig = [...(p.baseNotes || [])].sort().join(',');
+    existingSignatures.add(`${topSig}::${midSig}::${baseSig}`);
+  });
+
+  // Pick unique notes that have never been used in this exact combination
+  let chosenTop: string[] = [];
+  let chosenMid: string[] = [];
+  let chosenBase: string[] = [];
+  let attempts = 0;
+
+  do {
+    attempts++;
+    // Choose 2 or 3 top notes (so total is 6 to 8 notes, never 4-5!)
+    const topCount = Math.random() < 0.45 ? 3 : 2;
+    const shuffledTop = [...TOP_NOTE_POOL].sort(() => Math.random() - 0.5);
+    chosenTop = shuffledTop.slice(0, topCount);
+
+    // Choose 2 or 3 middle notes
+    const midCount = Math.random() < 0.5 ? 3 : 2;
+    const shuffledMid = [...MID_NOTE_POOL].sort(() => Math.random() - 0.5);
+    chosenMid = shuffledMid.slice(0, midCount);
+
+    // Choose 2 or 3 base notes
+    const baseCount = Math.random() < 0.45 ? 3 : 2;
+    const shuffledBase = [...BASE_NOTE_POOL].sort(() => Math.random() - 0.5);
+    chosenBase = shuffledBase.slice(0, baseCount);
+
+    const sig = `${[...chosenTop].sort().join(',')}::${[...chosenMid].sort().join(',')}::${[...chosenBase].sort().join(',')}`;
+    if (!existingSignatures.has(sig) || attempts > 100) {
+      break;
+    }
+  } while (attempts < 100);
+
+  // Generate unique code name with high-entropy serial
+  const p = CODE_PREFIXES[Math.floor(Math.random() * CODE_PREFIXES.length)];
+  const a = CODE_ADJECTIVES[Math.floor(Math.random() * CODE_ADJECTIVES.length)];
+  const s = CODE_SUFFIXES[Math.floor(Math.random() * CODE_SUFFIXES.length)];
+  const serial = Math.floor(Math.random() * 8999) + 1000;
+  const codeName = `${p} ${a} ${s} N°${serial}`;
+
+  // Luxury Brand & Title
+  const brand = LUXURY_HOUSES[Math.floor(Math.random() * LUXURY_HOUSES.length)];
+  const baseTitle = LUXURY_PERFUME_TITLES[Math.floor(Math.random() * LUXURY_PERFUME_TITLES.length)];
+  const perfumeName = `${baseTitle} N°${Math.floor(Math.random() * 899) + 100}`;
+  const gender: 'KADIN' | 'ERKEK' | 'UNISEX' = Math.random() < 0.33 ? 'KADIN' : Math.random() < 0.66 ? 'ERKEK' : 'UNISEX';
+
+  // Sensory hint tailored to the chosen notes
+  const topNames = chosenTop.join(', ');
+  const midNames = chosenMid.join(', ');
+  const baseNames = chosenBase.join(', ');
+  const hint = `Ekspertiz raporu: Açılışta ferah/canlı üst akorlar (${topNames.replace(/_/g, ' ')} izleri), gövdede lüks çiçeksi ve baharatlı kalp (${midNames.replace(/_/g, ' ')}), dipte ise derin ve kalıcı bir baz (${baseNames.replace(/_/g, ' ')}) yükseliyor.`;
+
+  // Dynamic formula drops
+  const recipeItems: any[] = [];
+  chosenTop.forEach((matId) => {
+    recipeItems.push({ rawMaterialId: matId, amount: 80, noteType: 'top', drops: 4 });
+  });
+  chosenMid.forEach((matId) => {
+    recipeItems.push({ rawMaterialId: matId, amount: 110, noteType: 'middle', drops: 4 });
+  });
+  chosenBase.forEach((matId) => {
+    recipeItems.push({ rawMaterialId: matId, amount: 130, noteType: 'base', drops: 3 });
+  });
+
+  const uniqueId = `secret_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const randomImage = LUXURY_IMAGES[Math.floor(Math.random() * LUXURY_IMAGES.length)];
+
+  // Quality tier based on note count (6 notes -> Kaliteli, 7 notes -> Kaliteli/Nadir, 8 notes -> Nadir/Efsanevi)
+  const totalNotesCount = chosenTop.length + chosenMid.length + chosenBase.length;
+  const roll = Math.random();
+  let qualityLevel: 'Kaliteli' | 'Nadir' | 'Efsanevi' = 'Kaliteli';
+  let qualityScore = 82;
+  let price = 1350;
+
+  if (totalNotesCount >= 8 && roll < 0.35) {
+    qualityLevel = 'Efsanevi';
+    qualityScore = Math.floor(Math.random() * 7) + 93; // 93 - 99
+    price = Math.floor(Math.random() * 8 + 26) * 100; // 2600 - 3300 ₺
+  } else if (totalNotesCount >= 7 && roll < 0.65) {
+    qualityLevel = 'Nadir';
+    qualityScore = Math.floor(Math.random() * 6) + 86; // 86 - 91
+    price = Math.floor(Math.random() * 6 + 16) * 100; // 1600 - 2100 ₺
+  } else {
+    qualityLevel = 'Kaliteli';
+    qualityScore = Math.floor(Math.random() * 6) + 79; // 79 - 84
+    price = Math.floor(Math.random() * 4 + 11) * 100 + 50; // 1150 - 1450 ₺
+  }
+
+  return {
+    id: uniqueId,
+    codeName,
+    purchasePrice: 10000, // ALWAYS exactly 10.000 ₺
+    isPurchased: false,
+    status: 'locked',
+    attemptsLeft: 3,
+    attempts: [],
+    hint,
+    realPerfume: {
+      id: uniqueId,
+      name: perfumeName,
+      brand,
+      gender,
+      qualityLevel,
+      qualityScore,
+      description: `${brand} atölyesinden çıkan ${totalNotesCount} notalı (${chosenTop.length} Üst, ${chosenMid.length} Orta, ${chosenBase.length} Alt) gizli reçete. Koku piramidinde ${topNames}, ${midNames} ve ${baseNames} ahenkle titreşir.`,
+      image: randomImage,
+      suggestedRetailPrice: price,
+      recipe: recipeItems,
+      topNotes: chosenTop,
+      middleNotes: chosenMid,
+      baseNotes: chosenBase
+    }
+  };
+}
+
+/**
+ * Ensures the active secret recipe pool continuously has fresh, diverse, unsolved projects.
+ */
+export function ensureSecretRecipePool(
+  currentRecipes: SecretRecipe[],
+  targetActiveCount = 5,
+  allPerfumes: Perfume[] = []
+): SecretRecipe[] {
+  const activeUnsolved = currentRecipes.filter((r) => r.status !== 'solved');
+  if (activeUnsolved.length >= targetActiveCount) {
+    return currentRecipes;
+  }
+
+  const needed = targetActiveCount - activeUnsolved.length;
+  const newOnes: SecretRecipe[] = [];
+  for (let i = 0; i < needed; i++) {
+    const fresh = generateUniqueSecretRecipe([...currentRecipes, ...newOnes], allPerfumes);
+    newOnes.push(fresh);
+  }
+
+  return [...currentRecipes, ...newOnes];
 }

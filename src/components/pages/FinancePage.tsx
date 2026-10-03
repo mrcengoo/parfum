@@ -14,11 +14,13 @@ import {
   Layers,
   FileSpreadsheet,
   Award,
-  Coins
+  Coins,
+  Building2,
+  BarChart3
 } from 'lucide-react';
 
 export const FinancePage: React.FC = () => {
-  const { playerCompany, playerPerfumer } = useGame();
+  const { playerCompany, playerPerfumer, addCompanyCash, companies } = useGame();
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'income' | 'expense' | 'royalties'>('all');
 
   const history = playerCompany.financialHistory || [];
@@ -88,13 +90,25 @@ export const FinancePage: React.FC = () => {
           </p>
         </div>
 
-        <div className="bg-slate-950 px-4 py-2.5 rounded-xl border border-slate-800 flex items-center gap-3">
-          <div className="text-xs">
-            <div className="text-slate-400">Şirket Kasası:</div>
-            <div className="font-mono font-bold text-amber-300 text-lg">
-              {playerCompany.cash.toLocaleString('tr-TR')} ₺
+        <div className="flex items-center gap-3">
+          <div className="bg-slate-950 px-4 py-2.5 rounded-xl border border-slate-800 flex items-center gap-3">
+            <div className="text-xs">
+              <div className="text-slate-400">Şirket Kasası:</div>
+              <div className="font-mono font-bold text-amber-300 text-lg">
+                {playerCompany.cash.toLocaleString('tr-TR')} ₺
+              </div>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => addCompanyCash(25000000)}
+            className="px-3.5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-950/30 flex items-center gap-1.5 transition-all"
+            title="Şirket kasasına +25.000.000 ₺ sermaye aktar"
+          >
+            <Coins className="w-4 h-4 text-amber-300" />
+            <span>+25M ₺ Sermaye Ekle</span>
+          </button>
         </div>
       </div>
 
@@ -189,6 +203,116 @@ export const FinancePage: React.FC = () => {
             %{playerCompany.profitMargin.toFixed(1)}
           </div>
           <div className="text-xs text-slate-500 mt-1">Gelir Üzerinden Kârlılık Oranı</div>
+        </div>
+      </div>
+
+      {/* SEKTÖR ŞİRKETLERİ FİNANSAL TABLOSU (GELİR, GİDER, NET KÂR, KÂR MARJI) */}
+      <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">
+              <BarChart3 className="w-4 h-4" />
+              Sektör Şirketleri Finansal Durumu
+            </div>
+            <h3 className="text-base font-bold text-white">
+              Şirketlerin Gelir, Gider, Net Kâr ve Kâr Marjı Karşılaştırması
+            </h3>
+          </div>
+          <span className="text-xs text-slate-400 font-mono">
+            Canlı Bot & Oyuncu Finansal Bilançosu
+          </span>
+        </div>
+
+        <div className="overflow-x-auto rounded-2xl border border-slate-800">
+          <table className="w-full text-left text-xs border-collapse font-sans">
+            <thead>
+              <tr className="bg-slate-950/90 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800 font-mono">
+                <th className="py-3.5 px-4">Şirket</th>
+                <th className="py-3.5 px-3 text-right">Kasa Nakdi</th>
+                <th className="py-3.5 px-3 text-right">Toplam Gelir</th>
+                <th className="py-3.5 px-3 text-right">Toplam Gider</th>
+                <th className="py-3.5 px-3 text-right">Net Kâr</th>
+                <th className="py-3.5 px-3 text-right">Kâr Marjı</th>
+                <th className="py-3.5 px-4 text-center">Durum</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60 font-sans">
+              {companies.map((comp) => {
+                const isUser = comp.isPlayer;
+                const isProfit = (comp.netProfit || 0) >= 0;
+
+                return (
+                  <tr
+                    key={comp.id}
+                    className={`hover:bg-slate-800/40 transition-colors ${
+                      isUser ? 'bg-amber-500/5 font-medium' : ''
+                    }`}
+                  >
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-xl">{comp.logo}</span>
+                        <div>
+                          <div className="font-bold text-white text-xs flex items-center gap-1.5">
+                            <span>{comp.name}</span>
+                            {isUser && (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">
+                                Siz
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-400">
+                            {isUser ? 'Kullanıcı Şirketi' : 'Otonom Rakip Bot'}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="py-3.5 px-3 text-right font-mono font-semibold text-emerald-400">
+                      {comp.cash.toLocaleString('tr-TR')} ₺
+                    </td>
+
+                    <td className="py-3.5 px-3 text-right font-mono font-bold text-emerald-400">
+                      {(comp.totalRevenue || 0).toLocaleString('tr-TR')} ₺
+                    </td>
+
+                    <td className="py-3.5 px-3 text-right font-mono font-bold text-rose-400">
+                      {(comp.totalExpenses || 0).toLocaleString('tr-TR')} ₺
+                    </td>
+
+                    <td className="py-3.5 px-3 text-right font-mono font-bold">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded-lg ${
+                          isProfit
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+                        }`}
+                      >
+                        {isProfit ? '+' : ''}{(comp.netProfit || 0).toLocaleString('tr-TR')} ₺
+                      </span>
+                    </td>
+
+                    <td className="py-3.5 px-3 text-right font-mono font-bold">
+                      <span className={isProfit ? 'text-emerald-300' : 'text-rose-300'}>
+                        %{(comp.profitMargin || 0).toFixed(1)}
+                      </span>
+                    </td>
+
+                    <td className="py-3.5 px-4 text-center">
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold ${
+                          isUser
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                            : 'bg-slate-800 text-slate-300'
+                        }`}
+                      >
+                        {isUser ? 'Kullanıcı' : 'Aktif Bot'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 

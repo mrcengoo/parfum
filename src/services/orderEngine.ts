@@ -1,8 +1,13 @@
-import { Company, MarketOrder, FinancialRecord, Perfume, Perfumer } from '../types';
+import { Company, MarketOrder, FinancialRecord, Perfume, Perfumer, OrderSubItem } from '../types';
+import { calculateSaleMarketingBonuses } from './marketingEngine';
 
 export interface FulfillmentResult {
   fulfilledQuantity: number;
+  productId: string;
+  productName: string;
+  finalUnitPrice: number;
   grossRevenue: number;
+  bonusRevenue: number;
   royaltyAmount: number;
   netRevenue: number;
   updatedOrder: MarketOrder;
@@ -17,39 +22,89 @@ export function fulfillMarketOrder(
   quantityToSell: number,
   company: Company,
   perfume?: Perfume,
-  companyPerfumer?: Perfumer
+  companyPerfumer?: Perfumer,
+  targetProductId?: string
 ): FulfillmentResult {
-  const currentProductStock = company.productStorage[order.productId]?.quantity || 0;
+  // Determine which product is being delivered
+  let activeProductId = targetProductId || order.productId;
+  let activeProductName = order.productName;
+  let unitPrice = order.pricePerUnit;
+  let maxOrderRemaining = order.remainingQuantity;
+
+  let targetSubItem: OrderSubItem | undefined;
+  if (order.items && order.items.length > 0) {
+    if (targetProductId) {
+      targetSubItem = order.items.find((item) => item.productId === targetProductId);
+    } else {
+      // Find the first sub-item that still needs fulfillment and that company has stock for
+      targetSubItem = order.items.find((item) => item.remainingQuantity > 0 && (company.productStorage[item.productId]?.quantity || 0) > 0)
+        || order.items.find((item) => item.remainingQuantity > 0)
+        || order.items[0];
+    }
+
+    if (targetSubItem) {
+      activeProductId = targetSubItem.productId;
+      activeProductName = targetSubItem.productName;
+      unitPrice = targetSubItem.pricePerUnit;
+      maxOrderRemaining = targetSubItem.remainingQuantity;
+    }
+  }
+
+  const currentProductStock = company.productStorage[activeProductId]?.quantity || 0;
   if (currentProductStock <= 0) {
-    throw new Error(`Depoda satılacak ${order.productName} stoğu bulunmuyor.`);
+    throw new Error(`Depoda satılacak ${activeProductName} stoğu bulunmuyor.`);
   }
 
-  const validSellQuantity = Math.min(quantityToSell, currentProductStock, order.remainingQuantity);
+  const validSellQuantity = Math.min(quantityToSell, currentProductStock, maxOrderRemaining);
   if (validSellQuantity <= 0) {
-    throw new Error('Geçersiz satış miktarı.');
+    throw new Error('Geçersiz veya 0 adetlik satış miktarı.');
   }
 
-  // İhracat Bonusu: örneğin +%4 ihracat bonusu satış gelirini %4 artırır
-  const exportBonus = companyPerfumer?.exportBonus || 0;
-  const baseRevenue = validSellQuantity * order.pricePerUnit;
-  const grossRevenue = Math.round(baseRevenue * (1 + exportBonus) * 100) / 100;
+  // İhracat, Şöhret, Satış Temsilcisi İknası, Bölgesel Popülerlik ve Ülke/Reklam Bonusları
+  const marketing = calculateSaleMarketingBonuses(
+    unitPrice,
+    company,
+    perfume,
+    order.country,
+    companyPerfumer
+  );
+  const baseRevenue = validSellQuantity * unitPrice;
+  const grossRevenue = Math.round(validSellQuantity * marketing.finalUnitPrice * 100) / 100;
+  const bonusRevenue = Math.max(0, Math.round((grossRevenue - baseRevenue) * 100) / 100);
 
   // ParfümATÖR Telif Oranı (AR-GE parfümlerinde tanımlı, örn: %3)
   const royaltyRate = perfume?.royaltyRate || 0;
   const royaltyAmount = Math.round(grossRevenue * royaltyRate * 100) / 100;
   const netRevenue = Math.round((grossRevenue - royaltyAmount) * 100) / 100;
 
-  const newRemaining = order.remainingQuantity - validSellQuantity;
-  const isCompleted = newRemaining <= 0;
+  // Update sub-items if present
+  let updatedItems = order.items;
+  let newTotalRemaining = 0;
+
+  if (order.items && order.items.length > 0) {
+    updatedItems = order.items.map((sub) => {
+      if (sub.productId === activeProductId) {
+        const subRemaining = Math.max(0, sub.remainingQuantity - validSellQuantity);
+        return { ...sub, remainingQuantity: subRemaining };
+      }
+      return sub;
+    });
+    newTotalRemaining = updatedItems.reduce((acc, curr) => acc + curr.remainingQuantity, 0);
+  } else {
+    newTotalRemaining = Math.max(0, order.remainingQuantity - validSellQuantity);
+  }
+
+  const isCompleted = newTotalRemaining <= 0;
 
   const updatedOrder: MarketOrder = {
     ...order,
-    remainingQuantity: Math.max(0, newRemaining),
+    items: updatedItems,
+    remainingQuantity: newTotalRemaining,
     status: isCompleted ? 'completed' : 'active'
   };
 
-  const productItem = company.productStorage[order.productId];
-  const unitCost = productItem?.unitCost || (perfume?.suggestedRetailPrice ? perfume.suggestedRetailPrice * 0.45 : 150);
+  const productItem = company.productStorage[activeProductId];
+  const unitCost = productItem?.unitCost || (perfume?.suggestedRetailPrice ? Math.max(120, perfume.suggestedRetailPrice - (perfume.resultLevel === 'Efsanevi' ? 2000 : perfume.resultLevel === 'Nadir' ? 1500 : perfume.resultLevel === 'Kaliteli' ? 1000 : 600)) : 180);
   const costOfGoodsSold = Math.round(validSellQuantity * unitCost * 100) / 100;
   const estimatedProfit = Math.round((netRevenue - costOfGoodsSold) * 100) / 100;
 
@@ -57,13 +112,17 @@ export function fulfillMarketOrder(
   const perfumerName = perfume?.perfumerName || companyPerfumer?.name || 'AromaLux Parfümörü';
 
   // 1. PARFÜM SATIŞI (Gelir Kaydı)
+  const isBundle = order.orderType === 'bundle_3' || order.orderType === 'bundle_5';
+  const bundleTag = isBundle ? ` [${order.orderCategory || 'Koleksiyon Siparişi'}]` : '';
+  const totalBonusPct = Math.round(marketing.totalBonusRate * 100);
+
   const saleRecord: FinancialRecord = {
     id: `fin_sale_${now}_${Math.random().toString(36).substring(2, 6)}`,
     timestamp: now,
     type: 'income',
     category: 'product_sale',
     amount: grossRevenue,
-    description: `PARFÜM SATIŞI: ${validSellQuantity} adet ${order.productName} (Birim: ${order.pricePerUnit} ₺ | Brüt: ${grossRevenue.toLocaleString('tr-TR')} ₺${exportBonus > 0 ? ` [İhracat Bonusu +%${exportBonus * 100}]` : ''})`,
+    description: `PARFÜM SATIŞI (${order.country}): ${validSellQuantity} adet ${activeProductName}${bundleTag} (Baz: ${unitPrice} ₺ -> İkna/Şöhret/Ülke Bonusu +${totalBonusPct}% ile Birim: ${marketing.finalUnitPrice} ₺ | Brüt: ${grossRevenue.toLocaleString('tr-TR')} ₺)`,
     relatedEntityId: order.id,
     cashAfter: 0,
     grossSaleAmount: grossRevenue,
@@ -93,7 +152,11 @@ export function fulfillMarketOrder(
 
   return {
     fulfilledQuantity: validSellQuantity,
+    productId: activeProductId,
+    productName: activeProductName,
+    finalUnitPrice: marketing.finalUnitPrice,
     grossRevenue,
+    bonusRevenue,
     royaltyAmount,
     netRevenue,
     updatedOrder,

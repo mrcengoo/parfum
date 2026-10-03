@@ -4,6 +4,9 @@ import { ActiveTab } from '../../types';
 import {
   Home,
   Building2,
+  BarChart3,
+  Globe2,
+  Award,
   TrendingUp,
   FlaskRound,
   Factory,
@@ -11,7 +14,11 @@ import {
   ClipboardList,
   Wallet,
   Dna,
-  FileLock2
+  Trophy,
+  Compass,
+  BookOpen,
+  Play,
+  Pause
 } from 'lucide-react';
 
 interface NavItem {
@@ -28,7 +35,10 @@ export const Sidebar: React.FC = () => {
     setActiveTab,
     playerCompany,
     rawMaterials,
-    orders
+    orders,
+    perfumes,
+    isGamePaused,
+    togglePauseGame
   } = useGame();
 
   const totalEssenceStock = Object.values(playerCompany.essenceStorage).reduce(
@@ -55,6 +65,27 @@ export const Sidebar: React.FC = () => {
       id: 'companies',
       label: 'Şirketler',
       icon: <Building2 className="w-4 h-4" />
+    },
+    {
+      id: 'countries',
+      label: 'Ülkeler & Bonuslar',
+      icon: <Globe2 className="w-4 h-4 text-amber-400" />,
+      badge: 'Özellik & Sinerji',
+      badgeColor: 'bg-amber-500/20 text-amber-300 font-bold'
+    },
+    {
+      id: 'market_analytics',
+      label: 'Pazar Payı & İstatistik',
+      icon: <BarChart3 className="w-4 h-4 text-emerald-400" />,
+      badge: '20 Ülke',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 font-bold'
+    },
+    {
+      id: 'perfumers',
+      label: 'Çalışanlar',
+      icon: <Award className="w-4 h-4 text-purple-400" />,
+      badge: 'Usta, Reklamcı & Temsilci',
+      badgeColor: 'bg-purple-500/20 text-purple-300 font-bold'
     },
     {
       id: 'market',
@@ -85,6 +116,13 @@ export const Sidebar: React.FC = () => {
       badgeColor: 'bg-indigo-500/20 text-indigo-300'
     },
     {
+      id: 'catalogue',
+      label: 'Ürün Kataloğu',
+      icon: <BookOpen className="w-4 h-4" />,
+      badge: `${perfumes.length} Çeşit`,
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 font-bold'
+    },
+    {
       id: 'orders',
       label: 'Siparişler',
       icon: <ClipboardList className="w-4 h-4" />,
@@ -104,11 +142,18 @@ export const Sidebar: React.FC = () => {
       badgeColor: 'bg-purple-500/20 text-purple-300 font-bold'
     },
     {
-      id: 'secret_recipes',
-      label: 'Gizli Reçeteler',
-      icon: <FileLock2 className="w-4 h-4" />,
-      badge: '🟨 GİZLİ',
+      id: 'awarded_perfumes',
+      label: 'Ödüllü Parfümler',
+      icon: <Trophy className="w-4 h-4 text-amber-400" />,
+      badge: '🏆 ÖDÜLLÜ',
       badgeColor: 'bg-amber-500/20 text-amber-300 font-bold'
+    },
+    {
+      id: 'find_formula',
+      label: 'Formülü Bul',
+      icon: <Compass className="w-4 h-4 text-purple-400" />,
+      badge: 'DEŞİFRE',
+      badgeColor: 'bg-purple-500/20 text-purple-300 font-bold'
     }
   ];
 
@@ -150,6 +195,37 @@ export const Sidebar: React.FC = () => {
             </button>
           );
         })}
+      </div>
+
+      {/* Simulation Status Card on Desktop Sidebar */}
+      <div className="hidden lg:flex flex-col gap-2 mt-auto pt-6 border-t border-slate-800/80">
+        <div className={`p-3 rounded-2xl border text-xs transition-all ${
+          isGamePaused
+            ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+            : 'bg-slate-950/80 border-slate-800 text-slate-300'
+        }`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Simülasyon</span>
+            <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold ${
+              isGamePaused ? 'text-amber-400' : 'text-emerald-400'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${isGamePaused ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'}`} />
+              {isGamePaused ? 'Durduruldu' : 'Çalışıyor'}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={togglePauseGame}
+            className={`w-full py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm ${
+              isGamePaused
+                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 animate-pulse shadow-emerald-500/20'
+                : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 hover:border-amber-500/30'
+            }`}
+          >
+            {isGamePaused ? <Play className="w-3.5 h-3.5 fill-current" /> : <Pause className="w-3.5 h-3.5" />}
+            <span>{isGamePaused ? 'Devam Et ▶️' : 'Oyunu Durdur ⏸️'}</span>
+          </button>
+        </div>
       </div>
     </aside>
   );

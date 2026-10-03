@@ -10,6 +10,7 @@ import {
   FormulaNoteItem,
   NoteType
 } from '../types';
+import { getTierTargetProfit } from './profitEngine';
 
 export interface FormulaInputItem {
   rawMaterialId: string;
@@ -109,6 +110,16 @@ export function generateRndFromFormula(
   if (allUniqueIds.length >= 4) baseHarmony += 5;
   if (topNoteIds.length >= 1 && middleNoteIds.length >= 1 && baseNoteIds.length >= 1) baseHarmony += 6;
 
+  // Parfümatörün Random 3 Koku Ailesi Bonusu Eşleşmesi (1 Aile: +4, 2 Aile: +8, 3 Aile: +12 Harmoni)
+  const selectedFamilies = Array.from(
+    new Set(selectedMaterials.map((m) => m.familyGroup).filter(Boolean))
+  );
+  const perfumerFamilyMatchCount = (perfumer.bonusFamilies || []).filter((fam) =>
+    selectedFamilies.includes(fam)
+  ).length;
+  const specialtyHarmonyBonus = Math.min(12, perfumerFamilyMatchCount * 4);
+  baseHarmony += specialtyHarmonyBonus;
+
   const perfumerHarmonyContribution = perfumer.noteHarmony * 1.8;
   const rawHarmonyScore = Math.min(99, Math.max(15, baseHarmony + perfumerHarmonyContribution + scaleBalanceBonus));
   const harmonyScore = Math.round(rawHarmonyScore);
@@ -140,14 +151,31 @@ export function generateRndFromFormula(
   const weightedQuality = (harmonyScore * 0.54) + (trendScore * 0.24) + perfumerRdBonus + (scaleBalanceBonus >= 10 ? 4 : scaleBalanceBonus < 0 ? scaleBalanceBonus : 0);
   const qualityScore = Math.min(99, Math.max(15, Math.round(weightedQuality)));
 
-  // 5. PARFÜM KALİTE SEVİYESİ (Hassas & Zorlayıcı Eşikler):
-  // Nadir ve Efsanevi artık sadece kusursuz piramit terazisinde ve yüksek harmonide çıkar!
+  // 5. PARFÜM KALİTE SEVİYESİ (Zorlayıcı Eşikler - 4 veya 5 notayla Nadir/Efsanevi ÇIKMAZ!):
+  // Nadir için en az 6 farklı nota (her kademede en az 2 nota), Altın Oran Terazi ve en az 2 Aile Bonusu eşleşmesi şarttır!
+  // Efsanevi için en az 7 farklı nota, Altın Oran Terazi ve 3 Aile Bonusunun tamamının eşleşmesi şarttır!
+  const hasFullMultiNotePyramid =
+    topNoteIds.length >= 2 && middleNoteIds.length >= 2 && baseNoteIds.length >= 2;
   let resultLevel: RndResultLevel = 'Standart';
-  if (qualityScore >= 92 && harmonyScore >= 88 && scaleBalanceBonus >= 10 && allUniqueIds.length >= 5) {
+  if (
+    qualityScore >= 92 &&
+    harmonyScore >= 88 &&
+    scaleBalanceBonus >= 10 &&
+    allUniqueIds.length >= 7 &&
+    hasFullMultiNotePyramid &&
+    perfumerFamilyMatchCount >= 3
+  ) {
     resultLevel = 'Efsanevi';
-  } else if (qualityScore >= 84 && harmonyScore >= 80 && scaleBalanceBonus >= 10 && allUniqueIds.length >= 4) {
+  } else if (
+    qualityScore >= 86 &&
+    harmonyScore >= 82 &&
+    scaleBalanceBonus >= 10 &&
+    allUniqueIds.length >= 6 &&
+    hasFullMultiNotePyramid &&
+    perfumerFamilyMatchCount >= 2
+  ) {
     resultLevel = 'Nadir';
-  } else if (qualityScore >= 70 && harmonyScore >= 66) {
+  } else if (qualityScore >= 70 && harmonyScore >= 66 && allUniqueIds.length >= 4) {
     resultLevel = 'Kaliteli';
   } else if (qualityScore >= 52) {
     resultLevel = 'Standart';
@@ -193,23 +221,21 @@ export function generateRndFromFormula(
     noteType: it.noteType
   }));
 
-  // Production cost and retail price
+  // Production cost and retail price (batch of 100 bottles)
   let batchMatCost = 0;
   recipe.forEach((r) => {
     const mat = rawMaterialsMap.get(r.rawMaterialId);
-    batchMatCost += r.amount * (mat?.price || 100);
+    const noteUnits = Math.max(1, Math.round(r.amount / 10));
+    batchMatCost += noteUnits * (mat?.price || 100);
   });
-  const productionCost = Math.round((batchMatCost * 1.5 + 4500) / 100);
+  const productionCost = Math.round((batchMatCost + 4500) / 100);
 
-  let priceMultiplier = 1.5;
-  if (resultLevel === 'Efsanevi') priceMultiplier = 3.2;
-  else if (resultLevel === 'Nadir') priceMultiplier = 2.4;
-  else if (resultLevel === 'Kaliteli') priceMultiplier = 1.9;
-  else if (resultLevel === 'Standart') priceMultiplier = 1.5;
-  else if (resultLevel === 'Sıradan') priceMultiplier = 1.2;
-  else priceMultiplier = 1.05;
-
-  const estimatedMarketPrice = Math.round(productionCost * priceMultiplier);
+  // SABİT HEDEF KÂR SİSTEMİ (Sabit Kademe Kârı):
+  // Piyasa Satış Fiyatı = Taban İmalat Maliyeti + Kademeye Göre Sabit Hedef Kâr
+  // (Basit: +200 ₺, Standart: +600 ₺, Efsanevi: +2000 ₺ vb.)
+  // Hammadde zamlandığında maliyet artacak ve piyasa tavanı sabit kaldığı için kâr eriyecektir!
+  const targetProfit = getTierTargetProfit(resultLevel);
+  const estimatedMarketPrice = Math.round(productionCost + targetProfit);
   const notesSummary = `${topDrops} Damla Üst, ${midDrops} Damla Orta, ${baseDrops} Damla Alt Nota (${selectedMaterials.map((m) => m.name).slice(0, 4).join(', ')}...)`;
 
   const perfumerReview = generateRndPerfumerReview(

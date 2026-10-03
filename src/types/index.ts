@@ -4,6 +4,18 @@
 
 export type NoteType = 'top' | 'middle' | 'base';
 
+export type OlfactoryFamilyGroup =
+  | 'Narenciye'
+  | 'Meyvemsi'
+  | 'Yeşilimsi'
+  | 'Baharatlı'
+  | 'Çiçeksi'
+  | 'Pudramsı'
+  | 'Tatlımsı'
+  | 'Odunsu'
+  | 'Amber'
+  | 'Deri';
+
 export interface PricePoint {
   timestamp: number;
   price: number;
@@ -28,7 +40,9 @@ export interface RawMaterial {
   supply: number; // 1-100
   demand: number; // 1-100
   priceHistory: PricePoint[];
-  category?: string; // e.g. "Çiçeksi · Tatlı · Odunsu"
+  category?: string; // e.g. "Tatlımsı - Odunsu"
+  familyGroup?: OlfactoryFamilyGroup; // 10 main families from Koku Çarkı
+  noteTier?: NoteType; // 'top' (Üst Nota) | 'middle' (Orta Nota) | 'base' (Alt Nota)
   description?: string;
   image?: string; // Fragrantica note image URL
 }
@@ -69,14 +83,22 @@ export interface Perfumer {
   noteHarmony: number; // 1-10 (TAM SAYI)
   trendFit: number; // 1-10 (TAM SAYI)
   rdLevel: number; // 1-10 (TAM SAYI)
-  logisticsBonus: number; // e.g. 0.03 (+3%)
-  exportBonus: number; // e.g. 0.04 (+4%)
-  wasteBonus: number; // e.g. 0.03 (+3%)
-  designFee: number; // e.g. 8000 TL
+  bonusFamilies?: OlfactoryFamilyGroup[]; // Random 3 Aile Bonusu (10 Aileden 3'ü)
+  logisticsBonus: number; // 0 (eski bonus kaldırıldı)
+  exportBonus: number; // 0 (eski bonus kaldırıldı)
+  wasteBonus: number; // 0 (eski bonus kaldırıldı)
+  designFee: number; // e.g. 25000 TL
   royaltyRate: number; // e.g. 0.03 (%3)
-  avatarType?: 'mert' | 'arda' | 'ece' | 'selin';
+  avatarType?: 'mert' | 'arda' | 'ece' | 'selin' | string;
   avatar?: string;
   bio?: string;
+  olfactoryFamily?: string; // 3 Aile Özeti
+  specialtyNotes?: string[];
+  favoredCountries?: string[];
+  noteMasteryBonusRate?: number; // 3 Aile tam eşleşme tavan bonusu (+%24)
+  qualityBonus?: number;
+  wasteReduction?: number;
+  speedBonus?: number;
 }
 
 export interface Perfume {
@@ -107,7 +129,51 @@ export interface Perfume {
   description: string;
   designFee?: number;
   royaltyRate?: number;
+  fame?: number; // 0-100 Parfüm Şöhreti (Reklam ve ihracat ile artar)
+  popularCountries?: string[]; // Bu parfümün en popüler olduğu ülkeler
   createdAt: number;
+}
+
+export interface SalesRep {
+  id: string;
+  name: string;
+  title: string;
+  avatar: string;
+  persuasion: number; // 1-100 İkna ve Satış Gücü
+  level: number; // 1-10 Eğitim Seviyesi
+  specialtyCountries: string[]; // Özel satış bonusu sağladığı ülkeler
+  closedDeals: number;
+  bonusRevenueGenerated: number;
+}
+
+export interface AdSpecialist {
+  id: string;
+  name: string;
+  title: string;
+  avatar: string;
+  adPower: number; // 1-100 Reklam Gücü
+  level: number; // 1-10 Kreatif Seviye
+  specialtyCountries: string[]; // Özel reklam bonusu sağladığı ülkeler
+  campaignsLaunched: number;
+  totalFameGenerated: number;
+}
+
+export interface AdCampaign {
+  id: string;
+  companyId: string;
+  perfumeId: string;
+  perfumeName: string;
+  targetCountry: string;
+  targetCountryFlag: string;
+  campaignTier: 'influencer' | 'billboard' | 'gala';
+  campaignTitle: string;
+  cost: number;
+  fameBoost: number;
+  countryBonusRate: number; // örn: 0.15 (+%15), 0.28 (+%28), 0.45 (+%45)
+  adSpecialistName?: string;
+  hasSynergy?: boolean;
+  startedAt: number;
+  expiresAt: number;
 }
 
 export interface ActiveShipment {
@@ -163,6 +229,8 @@ export interface ProductInventoryItem {
   lastSalePrice: number;
   suggestedSalePrice: number;
   totalSold: number;
+  countrySales?: Record<string, number>; // Ülke bazlı satılan şişe adedi (örn: { 'Fransa': 40 })
+  countryRevenue?: Record<string, number>; // Ülke bazlı satış cirosu (örn: { 'Fransa': 68000 })
   lastCostBreakdown?: ProductionCostBreakdown;
 }
 
@@ -183,6 +251,8 @@ export type FinancialCategory =
   | 'rnd_design_fee'
   | 'rnd_expense'
   | 'secret_recipe_purchase'
+  | 'advertising'
+  | 'sales_training'
   | 'other';
 
 export type FinancialType = 'income' | 'expense';
@@ -218,6 +288,23 @@ export interface Company {
   totalExpenses: number;
   netProfit: number;
   profitMargin: number;
+  lastRndInventionAt?: number; // 15 dakikalık AR-GE icat bekleme süresi damgası
+  salesRep?: SalesRep; // Şirketin Satış Temsilcisi & Satış/İkna Gücü
+  adSpecialist?: AdSpecialist; // Şirketin Reklamcısı & Reklam Gücü
+  countryBonuses?: Record<string, number>; // Ülke bazlı kalıcı pazar bonusu (örn: { 'Fransa': 0.15 })
+  activeCampaigns?: AdCampaign[]; // Aktif reklam kampanyaları
+  totalAdSpend?: number; // Toplam reklam harcaması
+  exclusiveCountryDeals?: Record<string, number>; // Ülke bazlı VIP Vitrin Anlaşması bitiş zamanı (timestamp)
+  countryPenalties?: Record<string, number>; // Rakip hamlesi nedeniyle o ülkede alınan geçici rekabet baskısı bitiş zamanı
+  lastCompetitiveTacticAt?: number; // 15 dakikalık stratejik pazar hamlesi bekleme süresi damgası
+}
+
+export interface OrderSubItem {
+  productId: string;
+  productName: string;
+  requestedQuantity: number;
+  remainingQuantity: number;
+  pricePerUnit: number;
 }
 
 export interface MarketOrder {
@@ -225,11 +312,15 @@ export interface MarketOrder {
   country: string;
   countryFlag: string;
   clientName: string;
+  orderType?: 'single' | 'bundle_3' | 'bundle_5';
+  orderCategory?: string; // e.g. "Tekli Prestij Siparişi", "3'lü Butik Seçki Koleksiyonu", "5'li Mega Departman Konsorsiyumu"
+  items?: OrderSubItem[]; // For 3 or 5 variety orders
   productId: string;
   productName: string;
   requestedQuantity: number;
   remainingQuantity: number;
   pricePerUnit: number;
+  totalOrderValue?: number;
   createdAt: number;
   expiresAt: number;
   status: 'active' | 'completed' | 'expired';
@@ -341,6 +432,7 @@ export interface SecretRecipe {
 export type ActiveTab =
   | 'overview'
   | 'companies'
+  | 'perfumers'
   | 'market'
   | 'essence_storage'
   | 'production'
@@ -348,4 +440,31 @@ export type ActiveTab =
   | 'orders'
   | 'finance'
   | 'rnd'
-  | 'secret_recipes';
+  | 'awarded_perfumes'
+  | 'find_formula'
+  | 'catalogue'
+  | 'market_analytics'
+  | 'countries';
+
+export type SectorActivityType =
+  | 'buy_essence'
+  | 'invent_perfume'
+  | 'start_production'
+  | 'complete_production'
+  | 'sell_product'
+  | 'export_order'
+  | 'ad_campaign'
+  | 'sales_rep_training';
+
+export interface SectorActivityEvent {
+  id: string;
+  timestamp: number;
+  companyId: string;
+  companyName: string;
+  companyLogo: string;
+  type: SectorActivityType;
+  title: string;
+  description: string;
+  amount?: number;
+  highlight?: boolean;
+}

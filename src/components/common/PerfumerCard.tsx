@@ -1,7 +1,8 @@
 import React from 'react';
 import { Perfumer } from '../../types';
 import { PerfumerAvatar } from './PerfumerAvatar';
-import { Sparkles, TrendingUp, FlaskConical, Truck, Globe2, Droplets, Check, CheckCircle2 } from 'lucide-react';
+import { getFamilyMeta } from '../../data/rawMaterials';
+import { Sparkles, TrendingUp, FlaskConical, Check } from 'lucide-react';
 
 interface PerfumerCardProps {
   perfumer: Perfumer;
@@ -18,11 +19,7 @@ export const PerfumerCard: React.FC<PerfumerCardProps> = ({
   onAssign,
   showAssignAction = false
 }) => {
-  // Format all bonuses with +X% as required
-  const formatBonusPct = (val: number) => {
-    const absVal = Math.abs(val) * 100;
-    return `+${absVal.toFixed(0)}%`;
-  };
+  const bonusFamilies = perfumer.bonusFamilies || ['Narenciye', 'Çiçeksi', 'Odunsu'];
 
   return (
     <div
@@ -33,7 +30,6 @@ export const PerfumerCard: React.FC<PerfumerCardProps> = ({
       }`}
     >
       <div className="space-y-3 min-w-0">
-        
         {/* Top Header: PARFÜMATÖR & AKTİF BURUN badge */}
         <div className="flex items-center justify-between gap-1.5 border-b border-slate-800/80 pb-2">
           <span className="text-[10px] uppercase font-bold tracking-wider text-purple-400">
@@ -100,40 +96,33 @@ export const PerfumerCard: React.FC<PerfumerCardProps> = ({
           </div>
         </div>
 
-        {/* BONUSLAR: LOJİSTİK +X%, İHRACAT +X%, FİRE +X% */}
-        <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 space-y-1 text-[11px]">
-          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-            BONUSLAR
-          </div>
-
-          <div className="flex justify-between items-center text-slate-300">
-            <span className="flex items-center gap-1.5 text-slate-400">
-              <Truck className="w-3 h-3 text-slate-500 shrink-0" /> LOJİSTİK:
+        {/* RANDOM 3 KOKU AİLESİ BONUSU */}
+        <div className="bg-slate-950/70 p-2.5 rounded-xl border border-purple-500/30 space-y-1.5 text-[11px]">
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-purple-300">
+              🎡 3 KOKU AİLESİ BONUSU
             </span>
-            <span className="font-mono font-bold text-emerald-400">
-              {formatBonusPct(perfumer.logisticsBonus)}
+            <span className="text-[9px] font-mono font-bold text-amber-300">
+              +%8 / +%16 / +%24
             </span>
           </div>
 
-          <div className="flex justify-between items-center text-slate-300">
-            <span className="flex items-center gap-1.5 text-slate-400">
-              <Globe2 className="w-3 h-3 text-slate-500 shrink-0" /> İHRACAT:
-            </span>
-            <span className="font-mono font-bold text-indigo-300">
-              {formatBonusPct(perfumer.exportBonus)}
-            </span>
-          </div>
-
-          <div className="flex justify-between items-center text-slate-300">
-            <span className="flex items-center gap-1.5 text-slate-400">
-              <Droplets className="w-3 h-3 text-slate-500 shrink-0" /> FİRE:
-            </span>
-            <span className="font-mono font-bold text-emerald-400">
-              {formatBonusPct(perfumer.wasteBonus)}
-            </span>
+          <div className="flex flex-wrap gap-1">
+            {bonusFamilies.map((fam) => {
+              const meta = getFamilyMeta(fam);
+              return (
+                <span
+                  key={fam}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-bold ${meta.badgeClass}`}
+                >
+                  <span>{meta.emoji}</span>
+                  <span>{meta.name}</span>
+                  <span className="font-mono opacity-90">+%8</span>
+                </span>
+              );
+            })}
           </div>
         </div>
-
       </div>
 
       {/* Commercial Terms & Action: TASARIM ÜCRETİ, SATIŞ TELİFİ */}
@@ -159,7 +148,7 @@ export const PerfumerCard: React.FC<PerfumerCardProps> = ({
             onClick={onAssign}
             className="w-full py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center justify-center gap-1.5"
           >
-            AromaLux'a Baş Parfümör Ata
+            AromaLux&apos;a Baş Parfümör Ata
           </button>
         )}
       </div>

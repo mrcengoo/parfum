@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
-import { RndResult, GenderType, RndResultLevel, NoteType, SecretRecipe } from '../../types';
+import { RndResult, GenderType, RndResultLevel, NoteType } from '../../types';
+import { getNoteTierLabel, getNoteTierShortLabel, getFamilyMeta, formatNoteCategory } from '../../data/rawMaterials';
 import { PerfumerCard } from '../common/PerfumerCard';
 import { NoteImage } from '../common/NoteImage';
 import { CountryFlag } from '../common/CountryFlag';
-import { SecretRecipeDeductionLab } from '../rnd/SecretRecipeDeductionLab';
 import {
   FlaskConical,
   Scale,
@@ -15,7 +15,6 @@ import {
   Check,
   Plus,
   Trash2,
-  FileLock2,
   Unlock,
   ArrowRight,
   Lightbulb,
@@ -49,38 +48,31 @@ export const RndPage: React.FC = () => {
     assignPerfumerToPlayerCompany,
     rawMaterialsMap,
     addToast,
-    secretRecipes,
-    guessSecretRecipe,
     setActiveTab
   } = useGame();
 
-  // Navigation Subtabs: Lab, Secrets, Archive, 4 Perfumers
-  const [activeSubTab, setActiveSubTab] = useState<'lab' | 'secrets' | 'archive' | 'perfumers'>('lab');
+  // Navigation Subtabs: Lab, Archive, 4 Perfumers
+  const [activeSubTab, setActiveSubTab] = useState<'lab' | 'archive' | 'perfumers'>('lab');
 
-  // Purchased Secret Recipes
-  const purchasedSecrets = useMemo(() => {
-    return secretRecipes.filter((s) => s.isPurchased);
-  }, [secretRecipes]);
-
-  // ================= 1. MEVCUT HAMMADDE DEPOSU TEK KAYNAK =================
-  // SADECE kullanıcının Hammadde Deposu'nda olan (stok > 0) hammaddeler seçilebilir
-  const availableDepoMaterials = useMemo(() => {
-    return Object.values(playerCompany.essenceStorage)
-      .filter((item) => item.quantity > 0)
-      .map((item) => {
-        const mat = rawMaterialsMap.get(item.rawMaterialId);
+  // ================= 1. TÜM HAMMADDELER LİSTESİ (AR-GE FORMÜL SEÇİMİ) =================
+  // Kullanıcı AR-GE masasında kataloğumuzdaki TÜM hammaddeleri özgürce seçebilir
+  const allAvailableMaterials = useMemo(() => {
+    return rawMaterials
+      .map((mat) => {
+        const stock = playerCompany.essenceStorage[mat.id]?.quantity || 0;
         return {
-          id: item.rawMaterialId,
-          name: mat?.name || item.rawMaterialId,
-          category: mat?.category || '',
-          image: mat?.image,
-          flag: mat?.flag || '🌿',
-          stock: item.quantity
+          id: mat.id,
+          name: mat.name,
+          category: mat.category || '',
+          familyGroup: mat.familyGroup || 'Çiçeksi',
+          noteTier: mat.noteTier || ('middle' as NoteType),
+          image: mat.image,
+          flag: mat.flag || '🌿',
+          stock: stock
         };
       })
-      .filter((item) => item.name)
       .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-  }, [playerCompany.essenceStorage, rawMaterialsMap]);
+  }, [rawMaterials, playerCompany.essenceStorage]);
 
   // ================= FORMÜL GENEL ALANLARI =================
   const [formulaName, setFormulaName] = useState<string>('');
@@ -88,32 +80,25 @@ export const RndPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [lastResult, setLastResult] = useState<RndResult | null>(null);
 
-  // Secret Recipe Guess / Reverse Engineering State in AR-GE
-  const [activeSecretId, setActiveSecretId] = useState<string | null>(null);
-  const [guessTop, setGuessTop] = useState<string[]>([]);
-  const [guessMid, setGuessMid] = useState<string[]>([]);
-  const [guessBase, setGuessBase] = useState<string[]>([]);
-  const [isSubmittingGuess, setIsSubmittingGuess] = useState<boolean>(false);
-
   // ================= 2. NOTA SATIRLARI (MAX 20 SATIR) =================
   const [rows, setRows] = useState<FormulaRowState[]>([]);
 
-  // Initial starter rows from player's available warehouse stock
+  // Initial starter rows from available materials catalogue
   useEffect(() => {
-    if (rows.length === 0 && availableDepoMaterials.length > 0) {
-      const topMat = availableDepoMaterials.find((m) => m.category.includes('Narenciye')) || availableDepoMaterials[0];
+    if (rows.length === 0 && allAvailableMaterials.length > 0) {
+      const topMat = allAvailableMaterials.find((m) => m.category.includes('Narenciye')) || allAvailableMaterials[0];
       const midMat =
-        availableDepoMaterials.find(
+        allAvailableMaterials.find(
           (m) => m.id !== topMat.id && (m.category.includes('Çiçeksi') || m.category.includes('Baharat'))
         ) ||
-        availableDepoMaterials[1] ||
-        availableDepoMaterials[0];
+        allAvailableMaterials[1] ||
+        allAvailableMaterials[0];
       const baseMat =
-        availableDepoMaterials.find(
+        allAvailableMaterials.find(
           (m) => m.id !== topMat.id && m.id !== midMat.id && (m.category.includes('Odunsu') || m.category.includes('Amber'))
         ) ||
-        availableDepoMaterials[2] ||
-        availableDepoMaterials[0];
+        allAvailableMaterials[2] ||
+        allAvailableMaterials[0];
 
       setRows([
         { id: 'row_1', rawMaterialId: topMat.id, drops: 8, tier: 'top' },
@@ -121,7 +106,7 @@ export const RndPage: React.FC = () => {
         { id: 'row_3', rawMaterialId: baseMat.id, drops: 8, tier: 'base' }
       ]);
     }
-  }, [availableDepoMaterials]);
+  }, [allAvailableMaterials]);
 
   // ================= 3. DAMLA VE TERAZİ HESAPLAMALARI =================
   const totalDrops = useMemo(() => {
@@ -207,23 +192,25 @@ export const RndPage: React.FC = () => {
       return;
     }
 
-    if (availableDepoMaterials.length === 0) {
+    if (allAvailableMaterials.length === 0) {
       addToast({
         type: 'error',
-        title: 'Depo Boş',
-        message: 'Hammadde deponuzda seçilebilecek esans bulunmuyor.'
+        title: 'Katalog Boş',
+        message: 'Katalogda seçilebilecek hammadde bulunamadı.'
       });
       return;
     }
 
-    // Unused or default
-    const usedIds = new Set(rows.map((r) => r.rawMaterialId));
-    const nextMat = availableDepoMaterials.find((m) => !usedIds.has(m.id)) || availableDepoMaterials[0];
-
-    // Smart tier proposal
+    // Smart tier proposal based on pyramid need, then pick a matching material
     let proposedTier: NoteType = 'middle';
     if (topDrops <= midDrops && topDrops <= baseDrops) proposedTier = 'top';
     else if (baseDrops <= midDrops && baseDrops <= topDrops) proposedTier = 'base';
+
+    const usedIds = new Set(rows.map((r) => r.rawMaterialId));
+    const nextMat =
+      allAvailableMaterials.find((m) => !usedIds.has(m.id) && m.noteTier === proposedTier) ||
+      allAvailableMaterials.find((m) => !usedIds.has(m.id)) ||
+      allAvailableMaterials[0];
 
     setRows((prev) => [
       ...prev,
@@ -231,7 +218,7 @@ export const RndPage: React.FC = () => {
         id: `row_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         rawMaterialId: nextMat.id,
         drops: 5,
-        tier: proposedTier
+        tier: nextMat.noteTier || proposedTier
       }
     ]);
   };
@@ -253,10 +240,20 @@ export const RndPage: React.FC = () => {
   };
 
   const handleResetFormula = () => {
-    if (availableDepoMaterials.length > 0) {
-      const topMat = availableDepoMaterials[0];
-      const midMat = availableDepoMaterials[1] || topMat;
-      const baseMat = availableDepoMaterials[2] || topMat;
+    if (allAvailableMaterials.length > 0) {
+      const topMat = allAvailableMaterials.find((m) => m.category.includes('Narenciye')) || allAvailableMaterials[0];
+      const midMat =
+        allAvailableMaterials.find(
+          (m) => m.id !== topMat.id && (m.category.includes('Çiçeksi') || m.category.includes('Baharat'))
+        ) ||
+        allAvailableMaterials[1] ||
+        topMat;
+      const baseMat =
+        allAvailableMaterials.find(
+          (m) => m.id !== topMat.id && m.id !== midMat.id && (m.category.includes('Odunsu') || m.category.includes('Amber'))
+        ) ||
+        allAvailableMaterials[2] ||
+        topMat;
 
       setRows([
         { id: 'row_1', rawMaterialId: topMat.id, drops: 8, tier: 'top' },
@@ -272,114 +269,6 @@ export const RndPage: React.FC = () => {
       type: 'info',
       title: 'Sıfırlandı',
       message: 'AR-GE formül masası standart başlangıç haline getirildi.'
-    });
-  };
-
-  // ================= GİZLİ REÇETE TERSİNE MÜHENDİSLİK İŞLEMLERİ =================
-  const toggleGuessTop = (id: string) => {
-    setGuessTop((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
-
-  const toggleGuessMid = (id: string) => {
-    setGuessMid((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
-
-  const toggleGuessBase = (id: string) => {
-    setGuessBase((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
-
-  const handleSubmitSecretGuess = (secretId: string) => {
-    if (guessTop.length === 0 || guessMid.length === 0 || guessBase.length === 0) {
-      addToast({
-        type: 'warning',
-        title: 'Eksik Koku Piramidi',
-        message: 'Lütfen analiziniz için en az 1 üst nota, 1 orta nota ve 1 alt nota seçiniz.'
-      });
-      return;
-    }
-
-    setIsSubmittingGuess(true);
-    try {
-      const attempt = guessSecretRecipe(secretId, guessTop, guessMid, guessBase);
-      if (attempt.isFullyCorrect) {
-        addToast({
-          type: 'success',
-          title: '🏆 GİZLİ REÇETE ÇÖZÜLDÜ!',
-          message: 'Kusursuz analiz! Gizli reçete deşifre edildi ve Üretim Portföyüne eklendi!'
-        });
-        setGuessTop([]);
-        setGuessMid([]);
-        setGuessBase([]);
-      } else {
-        addToast({
-          type: 'info',
-          title: `🧬 ${attempt.correctCount}/${attempt.totalRequired} Nota Doğru (${attempt.attemptNumber}. Deneme)`,
-          message: attempt.perfumerComment
-        });
-      }
-    } catch (err: any) {
-      addToast({
-        type: 'error',
-        title: 'Analiz Başarısız',
-        message: err.message || 'Tahmin işlemi başarısız.'
-      });
-    } finally {
-      setIsSubmittingGuess(false);
-    }
-  };
-
-  const handleTransferGuessToLab = (secret: SecretRecipe) => {
-    const newRows: FormulaRowState[] = [];
-    guessTop.forEach((id, idx) => {
-      newRows.push({ id: `row_gt_${idx}_${Date.now()}`, rawMaterialId: id, drops: 8, tier: 'top' });
-    });
-    guessMid.forEach((id, idx) => {
-      newRows.push({ id: `row_gm_${idx}_${Date.now()}`, rawMaterialId: id, drops: 12, tier: 'middle' });
-    });
-    guessBase.forEach((id, idx) => {
-      newRows.push({ id: `row_gb_${idx}_${Date.now()}`, rawMaterialId: id, drops: 8, tier: 'base' });
-    });
-
-    if (newRows.length === 0) {
-      addToast({
-        type: 'warning',
-        title: 'Nota Seçilmedi',
-        message: 'AR-GE masasına aktarmak için en az 1 nota seçmelisiniz.'
-      });
-      return;
-    }
-
-    setRows(newRows.slice(0, 20));
-    setFormulaName(`${secret.codeName} Analizi`);
-    setActiveSubTab('lab');
-    addToast({
-      type: 'success',
-      title: 'AR-GE Masasına Aktarıldı',
-      message: `${newRows.length} nota Formül Laboratuvarı masasına aktarıldı. Damla ayarlarını yapabilirsiniz.`
-    });
-  };
-
-  const handleLoadSolvedToLab = (secret: SecretRecipe) => {
-    if (!secret.realPerfume) return;
-    const newRows: FormulaRowState[] = [];
-    secret.realPerfume.topNotes.forEach((id, idx) => {
-      newRows.push({ id: `row_st_${idx}_${Date.now()}`, rawMaterialId: id, drops: 8, tier: 'top' });
-    });
-    secret.realPerfume.middleNotes.forEach((id, idx) => {
-      newRows.push({ id: `row_sm_${idx}_${Date.now()}`, rawMaterialId: id, drops: 12, tier: 'middle' });
-    });
-    secret.realPerfume.baseNotes.forEach((id, idx) => {
-      newRows.push({ id: `row_sb_${idx}_${Date.now()}`, rawMaterialId: id, drops: 8, tier: 'base' });
-    });
-
-    setRows(newRows.slice(0, 20));
-    setFormulaName(secret.realPerfume.name);
-    setGender(secret.realPerfume.gender);
-    setActiveSubTab('lab');
-    addToast({
-      type: 'info',
-      title: 'Reçete Yüklendi',
-      message: `"${secret.realPerfume.name}" formülü AR-GE masasına aktarıldı.`
     });
   };
 
@@ -497,21 +386,6 @@ export const RndPage: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setActiveSubTab('secrets')}
-            className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 relative ${
-              activeSubTab === 'secrets'
-                ? 'bg-amber-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <FileLock2 className="w-3.5 h-3.5 text-amber-400" />
-            <span>Gizli Reçeteler ({purchasedSecrets.length})</span>
-            {purchasedSecrets.some((s) => s.status !== 'solved') && (
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-            )}
-          </button>
-
-          <button
             onClick={() => setActiveSubTab('archive')}
             className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
               activeSubTab === 'archive'
@@ -549,8 +423,27 @@ export const RndPage: React.FC = () => {
               </span>
               <div>
                 <div className="text-slate-400">Baş Parfümör Denetimi:</div>
-                <div className="text-sm font-bold text-white">
-                  {playerPerfumer.name} • <span className="text-rose-400 font-semibold">{playerPerfumer.role}</span>
+                <div className="text-sm font-bold text-white flex items-center gap-2 flex-wrap">
+                  <span>{playerPerfumer.name}</span>
+                  <span className="text-rose-400 font-semibold">• {playerPerfumer.role}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1 mt-1">
+                  <span className="text-[10px] font-bold uppercase text-purple-300">
+                    🎡 3 Aile Bonusu:
+                  </span>
+                  {(playerPerfumer.bonusFamilies || ['Narenciye', 'Çiçeksi', 'Odunsu']).map((fam) => {
+                    const meta = getFamilyMeta(fam);
+                    return (
+                      <span
+                        key={fam}
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-bold ${meta.badgeClass}`}
+                      >
+                        <span>{meta.emoji}</span>
+                        <span>{meta.name}</span>
+                        <span className="font-mono">+%8</span>
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -565,7 +458,11 @@ export const RndPage: React.FC = () => {
               </span>
               <span>•</span>
               <span className="text-slate-300">
-                Depo Hammaddesi: <strong className="text-emerald-400 font-bold">{availableDepoMaterials.length} Çeşit</strong>
+                Seçilebilir Hammaddeler: <strong className="text-emerald-400 font-bold">{allAvailableMaterials.length} Çeşit (Tümü)</strong>
+              </span>
+              <span>•</span>
+              <span className="text-slate-300">
+                Depo Stoğunuz: <strong className="text-amber-300 font-bold">{Object.values(playerCompany.essenceStorage).filter((i) => (i.quantity || 0) > 0).length} Çeşit</strong>
               </span>
               <span>•</span>
               <span className="text-slate-300">
@@ -654,30 +551,6 @@ export const RndPage: React.FC = () => {
                   </div>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* WARNING IF DEPOSITORY IS EMPTY */}
-          {availableDepoMaterials.length === 0 && (
-            <div className="bg-rose-950/40 border border-rose-500/40 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-6 h-6 text-rose-400 shrink-0" />
-                <div>
-                  <h4 className="text-sm font-bold text-white">Hammadde Deponuzda Esans Bulunmuyor!</h4>
-                  <p className="text-slate-300 mt-0.5">
-                    AR-GE'de formül oluşturabilmek için mevcut Hammadde Deponuzda stok bulunmalıdır.
-                    Lütfen Hammadde Borsası'ndan esans satın alıp nakliyesini tamamlayın.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveTab('market')}
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold transition-all shrink-0 flex items-center gap-1.5"
-              >
-                <span>Hammadde Borsasına Git</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
             </div>
           )}
 
@@ -778,7 +651,7 @@ export const RndPage: React.FC = () => {
                               {index + 1}
                             </td>
 
-                            {/* 2. HAMMADDE (NOTA) DROPDOWN (SADECE DEPO STOKLARINDAN) */}
+                            {/* 2. HAMMADDE (NOTA) DROPDOWN */}
                             <td className="py-3 px-3">
                               <div className="flex items-center gap-2">
                                 <div className="shrink-0">
@@ -786,21 +659,46 @@ export const RndPage: React.FC = () => {
                                     id={row.rawMaterialId}
                                     src={currentMat?.image}
                                     name={currentMat?.name}
-                                    fallbackEmoji={currentMat?.flag || '🌿'}
+                                    fallbackEmoji={getFamilyMeta(currentMat?.familyGroup).emoji}
                                     size="sm"
                                   />
                                 </div>
-                                <select
-                                  value={row.rawMaterialId}
-                                  onChange={(e) => handleUpdateRow(row.id, { rawMaterialId: e.target.value })}
-                                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-rose-500"
-                                >
-                                  {availableDepoMaterials.map((mat) => (
-                                    <option key={mat.id} value={mat.id}>
-                                      {mat.name} (Stok: {mat.stock})
-                                    </option>
-                                  ))}
-                                </select>
+                                <div className="w-full min-w-0">
+                                  <select
+                                    value={row.rawMaterialId}
+                                    onChange={(e) => {
+                                      const newMat = rawMaterialsMap.get(e.target.value);
+                                      handleUpdateRow(row.id, {
+                                        rawMaterialId: e.target.value,
+                                        tier: newMat?.noteTier || row.tier
+                                      });
+                                    }}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-rose-500"
+                                  >
+                                    {allAvailableMaterials.map((mat) => (
+                                      <option key={mat.id} value={mat.id}>
+                                        [{getNoteTierShortLabel(mat.noteTier)} · {mat.familyGroup}] {mat.name} ({formatNoteCategory(mat.category)}) {mat.stock > 0 ? `- Depo: ${mat.stock}` : ''}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  {currentMat && (
+                                    <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
+                                      <span className="font-semibold text-amber-300">
+                                        {getNoteTierLabel(currentMat.noteTier)}
+                                      </span>
+                                      <span>·</span>
+                                      <span className={getFamilyMeta(currentMat.familyGroup).colorClass}>
+                                        {getFamilyMeta(currentMat.familyGroup).emoji} {currentMat.familyGroup}
+                                      </span>
+                                      <span>·</span>
+                                      <span>{formatNoteCategory(currentMat.category)}</span>
+                                      <span>·</span>
+                                      <span className={depoStock > 0 ? 'text-emerald-400 font-mono' : 'text-slate-500 font-mono'}>
+                                        Depo: {depoStock}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </td>
 
@@ -886,7 +784,7 @@ export const RndPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleAddRow}
-                    disabled={rows.length >= 20 || availableDepoMaterials.length === 0}
+                    disabled={rows.length >= 20 || allAvailableMaterials.length === 0}
                     className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-4 h-4 text-emerald-400" />
@@ -1094,243 +992,7 @@ export const RndPage: React.FC = () => {
         </div>
       )}
 
-      {/* SUBTAB 2: GİZLİ REÇETELER (SARI ZARFLAR) AR-GE MASASI */}
-      {activeSubTab === 'secrets' && (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <FileLock2 className="w-5 h-5 text-amber-400" />
-                <span>Satın Alınan Gizli Reçeteler ({purchasedSecrets.length} Zarf)</span>
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Satın aldığınız sarı zarfları AR-GE laboratuvarında analiz ederek doğrudan üretim kataloğunuza ekleyebilirsiniz.
-              </p>
-            </div>
-
-            <button
-              onClick={() => setActiveTab('secret_recipes')}
-              className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition-all flex items-center gap-1.5 self-start sm:self-auto"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>Yeni Gizli Zarf Satın Al</span>
-            </button>
-          </div>
-
-          {purchasedSecrets.length === 0 ? (
-            <div className="bg-slate-900/80 border border-slate-800 p-12 rounded-3xl text-center space-y-4 shadow-xl">
-              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 flex items-center justify-center mx-auto text-2xl">
-                🟨
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-base font-bold text-white">Henüz Satın Alınmış Gizli Reçete Zarfı Yok</h4>
-                <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-                  Gizli Reçeteler sayfasına giderek dünyaca ünlü efsane parfümlerin sarı zarflarını temin edebilirsiniz. 
-                  Satın aldığınız tüm zarflar doğrudan buraya gelir ve çözülerek üretime aktarılabilir.
-                </p>
-              </div>
-              <button
-                onClick={() => setActiveTab('secret_recipes')}
-                className="px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg transition-all inline-flex items-center gap-2"
-              >
-                <FileLock2 className="w-4 h-4" />
-                <span>Gizli Reçeteler Sayfasına Git</span>
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {purchasedSecrets.map((secret) => {
-                const isSolved = secret.status === 'solved';
-                const isFailed = secret.status === 'failed';
-
-                return (
-                  <div
-                    key={secret.id}
-                    className={`bg-slate-900/90 border rounded-3xl p-6 shadow-xl space-y-5 transition-all ${
-                      isSolved
-                        ? 'border-emerald-500/40 shadow-emerald-950/20'
-                        : isFailed
-                        ? 'border-rose-500/40 shadow-rose-950/20'
-                        : 'border-amber-500/40 shadow-amber-950/20'
-                    }`}
-                  >
-                    {/* Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl p-2 rounded-xl bg-slate-950 border border-slate-800">
-                          {isSolved ? '🏆' : '🟨'}
-                        </span>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono font-bold text-amber-400 tracking-wider">
-                              TOP SECRET DOSYA
-                            </span>
-                            <span
-                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase ${
-                                isSolved
-                                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                                  : isFailed
-                                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-                                  : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                              }`}
-                            >
-                              {isSolved
-                                ? '✓ Çözüldü & Üretime Eklendi'
-                                : isFailed
-                                ? '3 Hak Doldu'
-                                : `${secret.attemptsLeft} Tahmin Hakkı`}
-                            </span>
-                          </div>
-                          <h4 className="text-lg font-bold font-serif text-white mt-0.5">
-                            {secret.codeName}
-                          </h4>
-                        </div>
-                      </div>
-
-                      {/* Top Action Button */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {isSolved ? (
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleLoadSolvedToLab(secret)}
-                              className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5"
-                            >
-                              <FlaskConical className="w-4 h-4" />
-                              <span>AR-GE Masasında Aç</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setActiveTab('production')}
-                              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all"
-                            >
-                              <Zap className="w-4 h-4" />
-                              <span>Üretim Sayfasında Üret</span>
-                            </button>
-                          </div>
-                        ) : isFailed ? (
-                          <span className="px-3 py-1.5 rounded-xl bg-rose-950/50 text-rose-300 border border-rose-500/40 text-xs font-bold">
-                            3 Hak Tükendi
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveSecretId(activeSecretId === secret.id ? null : secret.id);
-                            }}
-                            className={`px-4 py-2 font-bold text-xs rounded-xl shadow-lg flex items-center gap-2 transition-all ${
-                              activeSecretId === secret.id
-                                ? 'bg-purple-600 text-white shadow-purple-600/30'
-                                : 'bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 shadow-amber-500/20'
-                            }`}
-                          >
-                            <FlaskConical className="w-4 h-4" />
-                            <span>
-                              {activeSecretId === secret.id
-                                ? 'Analiz Masasını Kapat ▲'
-                                : `Laboratuvarda Formülü Çöz (${secret.attemptsLeft} Hak) ▼`}
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* DEDUCTION LABORATORY BENCH (WHEN ACTIVE & UNSOLVED) */}
-                    {activeSecretId === secret.id && !isSolved && !isFailed && (
-                      <SecretRecipeDeductionLab
-                        secret={secret}
-                        onClose={() => setActiveSecretId(null)}
-                        onTransferToFormulaLab={() => handleLoadSolvedToLab(secret)}
-                      />
-                    )}
-
-                    {/* Hint / Parfümatör İpucu (shown if lab is not open) */}
-                    {activeSecretId !== secret.id && (
-                      <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 text-xs text-slate-300 space-y-1.5">
-                        <div className="flex items-center gap-2 text-amber-400 font-bold">
-                          <Lightbulb className="w-4 h-4 text-amber-400" />
-                          <span>ParfümATÖR Burun İpuçları:</span>
-                        </div>
-                        <p className="italic text-slate-300 leading-relaxed">
-                          "{secret.hint}"
-                        </p>
-                      </div>
-                    )}
-
-                    {/* IF SOLVED: SHOW REVEALED PERFUME */}
-                    {isSolved && secret.realPerfume && (
-                      <div className="bg-gradient-to-br from-emerald-950/30 via-slate-950 to-slate-950 p-5 rounded-2xl border border-emerald-500/30 space-y-4">
-                        <div className="flex flex-col sm:flex-row gap-4 items-start">
-                          <img
-                            src={secret.realPerfume.image}
-                            alt={secret.realPerfume.name}
-                            className="w-20 h-20 rounded-2xl object-cover border border-emerald-500/40 shadow-md shrink-0"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                                {secret.realPerfume.gender}
-                              </span>
-                              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                                {secret.realPerfume.qualityLevel} Seviye
-                              </span>
-                              <span className="text-[10px] font-mono text-slate-400">
-                                Kalite Skoru: %{secret.realPerfume.qualityScore}
-                              </span>
-                            </div>
-                            <h5 className="text-base font-bold text-white">
-                              {secret.realPerfume.brand} — {secret.realPerfume.name}
-                            </h5>
-                            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                              {secret.realPerfume.description}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Notalar Listesi */}
-                        <div className="pt-2 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                          <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                            <span className="text-[10px] font-bold text-rose-400 uppercase block mb-1">Üst Notalar:</span>
-                            <div className="text-slate-300">
-                              {secret.realPerfume.topNotes.map((id) => rawMaterialsMap.get(id)?.name || id).join(', ')}
-                            </div>
-                          </div>
-                          <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                            <span className="text-[10px] font-bold text-amber-400 uppercase block mb-1">Orta Notalar:</span>
-                            <div className="text-slate-300">
-                              {secret.realPerfume.middleNotes.map((id) => rawMaterialsMap.get(id)?.name || id).join(', ')}
-                            </div>
-                          </div>
-                          <div className="bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
-                            <span className="text-[10px] font-bold text-purple-400 uppercase block mb-1">Alt Notalar:</span>
-                            <div className="text-slate-300">
-                              {secret.realPerfume.baseNotes.map((id) => rawMaterialsMap.get(id)?.name || id).join(', ')}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-2 text-xs">
-                          <span className="text-slate-400">
-                            Tavsiye Edilen Satış Fiyatı: <strong className="text-emerald-400 font-mono">{secret.realPerfume.suggestedRetailPrice} ₺</strong>
-                          </span>
-                          <button
-                            onClick={() => setActiveTab('production')}
-                            className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all"
-                          >
-                            Üretim Bölümünde Üret
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* SUBTAB 3: FORMÜL ARŞİVİ */}
+      {/* SUBTAB 2: FORMÜL ARŞİVİ */}
       {activeSubTab === 'archive' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">

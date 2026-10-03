@@ -64,8 +64,9 @@ export function checkRecipeRequirements(
 
   const items = perfume.recipe.map((recipeItem) => {
     const rawMat = rawMaterialsMap.get(recipeItem.rawMaterialId);
-    // Integer requirement for the batch
-    const required = Math.max(1, Math.round(recipeItem.amount * batchMultiplier));
+    // Formula amounts are in permille (‰). For 100 bottles, each note requires (amount / 10) essence units
+    const scaledAmount = Math.max(1, Math.round(recipeItem.amount / 10));
+    const required = Math.max(1, Math.round(scaledAmount * batchMultiplier));
     const inStock = company.essenceStorage[recipeItem.rawMaterialId]?.quantity || 0;
     const sufficient = inStock >= required;
     const missingAmount = sufficient ? 0 : required - inStock;
@@ -98,23 +99,19 @@ export function checkRecipeRequirements(
     rawMaterialCost += item.required * basePrice;
   });
 
-  const taxCost = Math.round(rawMaterialCost * TAX_RATE);
-  const logisticsCost = Math.round(rawMaterialCost * LOGISTICS_RATE);
-  const wasteCost = Math.round(rawMaterialCost * (WASTE_RATE / (1 - WASTE_RATE)));
-  const essenceProductionCost = Math.round(rawMaterialCost * 0.08);
+  // Manufacturing overhead (şişeleme işçiliği ve laboratuvar test payı)
   const factoryLaborCost = getFactoryLaborFee(batchSize);
+  const packagingOverhead = Math.round(rawMaterialCost * 0.05);
 
-  const totalCost = Math.round(
-    rawMaterialCost + taxCost + logisticsCost + wasteCost + essenceProductionCost + factoryLaborCost
-  );
+  const totalCost = Math.round(rawMaterialCost + factoryLaborCost + packagingOverhead);
   const unitCost = Math.round((totalCost / batchSize) * 100) / 100;
 
   const costBreakdown: ProductionCostBreakdown = {
     rawMaterialCost,
-    taxCost,
-    logisticsCost,
-    wasteCost,
-    essenceProductionCost,
+    taxCost: 0,
+    logisticsCost: 0,
+    wasteCost: 0,
+    essenceProductionCost: packagingOverhead,
     factoryLaborCost,
     totalCost,
     unitCost
